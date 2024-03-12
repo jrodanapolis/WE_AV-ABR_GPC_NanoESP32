@@ -977,7 +977,7 @@ void UpdateShotTimer() {
 }
 void UpdatePressure() {
   vPres = (float)analogRead(A3);
-  readPressure = ((vPres - 337.0) * 13.7895 / 819.0);
+  readPressure = ((((vPres / 4095) - 0.1) * 200 / 0.8) * 0.0689476) + 0.5; //added 0.5 to match machine pressure guage, but not sure if it's more or less accurate?
   // presPlot = readPressure;
   presPlot = map(readPressure * 100, 0.0 * 100, 10 * 100, 218, 118);
   tft.setTextSize(2);
