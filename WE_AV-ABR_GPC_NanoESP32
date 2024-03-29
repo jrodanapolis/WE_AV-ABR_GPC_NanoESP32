@@ -108,6 +108,7 @@ unsigned long readings_PT[numReadings_PT];
 unsigned long readIndex_PT;
 unsigned long total_PT;
 unsigned long average_PT = 0;
+unsigned long PT_kilo = 0;
 unsigned long duty_PT = 0;
 
 int phaseTimer = 0;
@@ -129,7 +130,7 @@ unsigned long currentTime;
 unsigned long seconds = 0;
 bool timerRunning;
 bool weightStopper = false;
-//#define BRIGHTNESS 6
+#define BRIGHTNESS 5
 #define TFT_CS 9
 #define TFT_DC 10
 Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC);
@@ -139,6 +140,7 @@ const uint16_t PRESSURE_COLOR = tft.color565(219, 208, 83);
 const uint16_t FLOW_COLOR = tft.color565(99, 105, 209);
 const uint16_t PUMP_COLOR = tft.color565(79, 201, 120);
 const uint16_t TIME_COLOR = tft.color565(238, 99, 82);
+const uint16_t RPM_COLOR = tft.color565(230, 101, 45);
 const uint16_t PHASE_COLOR = tft.color565(244, 187, 255);
 const uint16_t BUTTON_COLOR = tft.color565(27, 45, 42);
 const uint16_t BUTTON_OUTLINE_COLOR = tft.color565(247, 247, 255);
@@ -201,9 +203,9 @@ struct ProfileType {
 };
 ProfileType Profiles[NumberOfProfiles] = {
   { "EMP", 40, 30, 76, 56, Manual, { { " Manual", 0.0, 0.0, 0.0, 0, 0, false, false, false, false, false } } },
-  { "3-6-9", 120, 30, 76, 56, Interactive, { { "3 Bar", 3.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "6 Bar", 6.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "9 Bar", 9.0, 0.0, 0.0, 0, 0, false, false, false, false, true } } },
-  { "Slayer 6", 40, 90, 76, 56, Interactive, { { "  PI  ", 3.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "6 Bar", 6.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "6 Bar", 6.0, 0.0, 0.0, 0, 0, false, false, false, false, true } } },
-  { "Slayer 9", 120, 90, 76, 56, Interactive, { { "  PI  ", 3.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "9 Bar", 9.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "9 Bar", 9.0, 0.0, 0.0, 0, 0, false, false, false, false, true } } },
+  { "3-6-9", 120, 30, 76, 56, Interactive, { { "3 Bar", 3.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "6 Bar", 6.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "9 Bar", 9.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, {" Line ", 0.0, 0.0, 0.0, 0, 0, false, false, false, false, true } } },
+  { "Slayer 6", 40, 90, 76, 56, Interactive, { { "  PI  ", 3.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "6 Bar", 6.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "6 Bar", 6.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, {" Line ", 0.0, 0.0, 0.0, 0, 0, false, false, false, false, true } } },
+  { "Slayer 9", 120, 90, 76, 56, Interactive, { { "  PI  ", 3.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "9 Bar", 9.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "9 Bar", 9.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, {" Line ", 0.0, 0.0, 0.0, 0, 0, false, false, false, false, true } } },
   { "WE Pro 2:1", 40, 150, 76, 56, Automatic, { { "Start", 2.5, 0, 40.0, 2, 0, false, false, true, true, false }, { "PI 1/2", 4.5, 0.0, 40.0, 12, 6, false, false, true, true, false }, { "PI 2/2", 2.5, 0.0, 40.0, 15, 10, false, false, true, true, false }, { "9 Bar", 8, 0.0, 40.0, 15, 3, false, false, true, true, false }, { "Decrease", 6.5, 0.0, 40.0, 15, 15, false, false, true, true, false }, { " Hold ", 6.5, 0.0, 40.0, 30, 30, false, false, true, true, false } } },
   { "WE Pro 3:1", 120, 150, 76, 56, Automatic, { { "Start", 2.5, 0, 50.0, 2, 0, false, false, true, true, false }, { "PI 1/2", 4.5, 0.0, 50.0, 12, 6, false, false, true, true, false }, { "PI 2/2", 2.5, 0.0, 50.0, 15, 10, false, false, true, true, false }, { "9 Bar", 8, 0.0, 50.0, 15, 3, false, false, true, true, false }, { "Decrease", 6.5, 0.0, 50.0, 15, 15, false, false, true, true, false }, { " Hold ", 6.5, 0.0, 50.0, 30, 30, false, false, true, true, false } } },
   { "Leva X", 40, 210, 76, 56, Automatic, { { "PI", 3.0, 0.0, 0.0, 10, 1, false, false, true, false, false }, { "Ramp", 9.0, 0.0, 0.0, 2, 1, true, false, true, false, false }, { "Decrease", 4.0, 0.0, 0.0, 40, 40, false, false, true, false, false }, { "Finishing", 4.0, 0.0, 0.0, 8, 3, false, false, true, false, false } } },
@@ -281,14 +283,17 @@ int getPaddleState() {
   if (Profiles[selectedProfile].mode != Interactive) {
     return -1;
   }
-  if (analogRead(A2) >= 570) {
+  if (analogRead(A2) >= 2203) {
     return 0;
   }
-  if ((analogRead(A2) < 570) && (analogRead(A2) >= 475)) {
+  if ((analogRead(A2) < 2203) && (analogRead(A2) >= 1937)) {
     return 1;
   }
-  if (analogRead(A2) < 475) {
+  if ((analogRead(A2) < 1937) && (analogRead(A2) >= 1489)) {
     return 2;
+  }
+  if (analogRead(A3) <= 1489) {
+    return 3;
   }
 }
 void PrintPhase() {
@@ -429,7 +434,7 @@ void DrawSettingsScreen() {
   UpdateDoseSize();
   UpDown[0].drawButton();
   UpDown[1].drawButton();
-  //InitBrightness();
+  InitBrightness();
 }
 
 uint16_t cacluateRainbow(int progress) {
@@ -629,33 +634,40 @@ void DrawPlot() {
   tft.print("0");
 
   // tft.drawRoundRect(8, 55, 64, 50, 4, TIME_COLOR);
+  tft.setTextSize(1);
+  tft.setTextColor(TIME_COLOR, BACKGROUND_COLOR);
+  tft.setCursor(5, 55);
+  tft.print("Time: ");
+  tft.setCursor(8, 90);
+  tft.print("sec");
   tft.setTextColor(PRESSURE_COLOR, BACKGROUND_COLOR);
-  tft.setTextSize(2);
-  tft.setCursor(60, 52);
+  tft.setCursor(50, 55);
   tft.print("Pressure: ");
-  tft.setCursor(245, 52);
+  tft.setCursor(65, 90);
   tft.print("Bar");
   tft.setTextSize(1);
-  tft.setCursor(5, 100);
+  tft.setCursor(5, 104);
   tft.print("Pres.");
   tft.setTextColor(FLOW_COLOR, BACKGROUND_COLOR);
-  tft.setTextSize(2);
-  tft.setCursor(60, 75);
+  tft.setCursor(138, 55);
   tft.print("Flow: ");
-  tft.setCursor(245, 75);
+  tft.setCursor(138, 90);
   tft.print("mL/s");
-  tft.setTextSize(1);
-  tft.setCursor(300, 90);
-  tft.print("Flo");
-  tft.setTextSize(2);
-  tft.setCursor(60, 97);
+  tft.setCursor(260, 104);
+  tft.print("Flo/");
   tft.setTextColor(PUMP_COLOR, BACKGROUND_COLOR);
+  tft.setCursor(200, 55);
   tft.print("Weight: ");
-  tft.setCursor(245, 97);
-  tft.print("gms");
+  tft.setCursor(205, 90);
+  tft.print("grams");
   tft.setTextSize(1);
-  tft.setCursor(300, 100);
+  tft.setCursor(290, 104);
   tft.print("Wt.");
+  tft.setTextColor(RPM_COLOR, BACKGROUND_COLOR);
+  tft.setCursor(270, 55);
+  tft.print("Pump: ");
+  tft.setCursor(270, 90);
+  tft.print("mL/s");
 }
 void DrawProfiles() {
   for (uint8_t i = 0; i < NumberOfProfiles + 1; i++) {
@@ -695,8 +707,9 @@ void InitButtons() {
 }
 int UpdateManual() {
   potentiometer = analogRead(A2);
-  if (analogRead(A2) <= 900) {
-    return (-0.54 * potentiometer) + 385;
+  Serial.print(potentiometer);
+  if (analogRead(A2) >= 1600) {
+    return (-0.25 * potentiometer) + 580;
   } else {
     return 0;
   }
@@ -755,7 +768,7 @@ void InitBrightness() {
   tft.setCursor(20, 165);
   tft.print("Brightness");
   lastBrightnessX = SelectedBrightness;
-  //analogWrite(BRIGHTNESS, SelectedBrightness);
+  analogWrite(BRIGHTNESS, SelectedBrightness);
 }
 
 void UpdateBrightness(int newXValue) {
@@ -767,14 +780,14 @@ void UpdateBrightness(int newXValue) {
       newXValue = sliderEnd;
     }
     tft.fillRect(sliderStart - 15, 200 - 15, sliderEnd - sliderStart + 15, 40, BACKGROUND_COLOR);
-    //tft.fillCircle(lastBrightnessX, 200, 15, BACKGROUND_COLOR);
+    tft.fillCircle(lastBrightnessX, 200, 15, BACKGROUND_COLOR);
     tft.drawFastHLine(sliderStart, sliderY, 255, TEXT_COLOR);
     tft.fillCircle(newXValue, 200, 15, BUTTON_COLOR);
     tft.setTextColor(TEXT_COLOR, BACKGROUND_COLOR);
 
     SelectedBrightness = newXValue - sliderStart;
     lastBrightnessX = SelectedBrightness;
-    //analogWrite(BRIGHTNESS, SelectedBrightness);
+    analogWrite(BRIGHTNESS, SelectedBrightness);
   }
 }
 
@@ -971,34 +984,35 @@ bool CheckButtonPress() {
 void UpdateShotTimer() {
   tft.setTextColor(TIME_COLOR, BACKGROUND_COLOR);
   tft.setTextSize(3);
-  tft.setCursor(3, 65);
+  tft.setCursor(1, 65);
   tft.print(shotTimer);
+  if (shotTimer <= 9) {
   tft.print(" ");
+  }
 }
 void UpdatePressure() {
   vPres = (float)analogRead(A3);
   readPressure = ((((vPres / 4095) - 0.1) * 200 / 0.8) * 0.0689476) + 0.5; //added 0.5 to match machine pressure guage, but not sure if it's more or less accurate?
   // presPlot = readPressure;
   presPlot = map(readPressure * 100, 0.0 * 100, 10 * 100, 218, 118);
-  tft.setTextSize(2);
+  tft.setTextSize(3);
   tft.setTextColor(PRESSURE_COLOR, BACKGROUND_COLOR);
-  tft.setCursor(170, 52);
+  tft.setCursor(48, 65);
   tft.print(abs(readPressure), 1);
+  if (readPressure <= 9.9) {
   tft.print(" ");
+  }
 }
 
 void UpdateLunar() {
-  readLunar = lunar.weight;
+  readLunar = constrain(lunar.weight, 0, 99.9);
   LunarPlot = map(readLunar, 0.0, 50.0, 218, 118);
   LunarPlot = constrain(LunarPlot, 118, 218);
-  tft.setTextSize(2);
-  tft.setCursor(170, 97);
+  tft.setTextSize(3);
+  tft.setCursor(195, 65);
   tft.setTextColor(PUMP_COLOR, BACKGROUND_COLOR);
-  tft.print(abs(lunar.weight), 1);
-  if (lunar.weight <= 9.9){
-    tft.print("  ");
-  }
-  else{
+  tft.print(abs(readLunar), 1);
+  if (readLunar <= 9.9) {
   tft.print(" ");
   }
 }
@@ -1078,11 +1092,13 @@ void UpdateFlowMeter() {
   flowRate_FM_Display = constrain(flowRate_FM, 0.0, 10.0);
   flowPlot_FM = map(flowRate_FM * 100, 0.0 * 100, 10.0 * 100, 218, 118);
   flowPlot_FM = constrain(flowPlot_FM, 118, 218);
-  tft.setTextSize(2);
-  tft.setCursor(170, 75);
+  tft.setTextSize(3);
+  tft.setCursor(123, 65);
   tft.setTextColor(FLOW_COLOR, BACKGROUND_COLOR);
   tft.print(flowRate_FM_Display, 1);
+  if (flowRate_FM_Display <= 9.9) {
   tft.print(" ");
+  }
 }
 void UpdatePumpTach() {
   LastTimeCycleMeasure_PT = LastTimeWeMeasured_PT;
@@ -1115,16 +1131,19 @@ void UpdatePumpTach() {
     readIndex_PT = 0;  // Reset array index.
   }
   average_PT = total_PT / numReadings_PT;
+  PT_kilo = average_PT / 1000;
   flowRate_PT = average_PT / 60.0 * 0.3;
   constrain(flowPlot_PT, 0, 20);
   duty_PT = average_PT / 50;
   flowPlot_PT = map(flowRate_PT * 100, 0.0 * 100, 20.0 * 100, 218, 118);
   flowPlot_PT = constrain(flowPlot_PT, 118, 218);
-  tft.setTextSize(2);
-  tft.setCursor(210, 97);
-  tft.setTextColor(PUMP_COLOR, BACKGROUND_COLOR);
-  //tft.print(flowRate_PT, 1);
-  //tft.print(" ");
+  tft.setTextSize(3);
+  tft.setCursor(275, 65);
+  tft.setTextColor(RPM_COLOR, BACKGROUND_COLOR);
+  tft.print(flowRate_PT,0);
+  if (flowRate_PT <= 9.9) { 
+    tft.print(" ");
+  }
 }
 
 uint16_t getCenteredX(String text) {
@@ -1196,10 +1215,13 @@ void setup() {
   pinMode(A7, OUTPUT);
   pinMode(2, OUTPUT);
   pinMode(3, OUTPUT);
-  pinMode(5, INPUT);
-  pinMode(6, INPUT);
-  attachInterrupt(digitalPinToInterrupt(A1), Pulse_Event_FM, RISING);
-  attachInterrupt(digitalPinToInterrupt(4), Pulse_Event_PT, RISING);
+  pinMode(4, INPUT);
+  pinMode(5, OUTPUT);
+  pinMode(6, OUTPUT);
+  pinMode(7, INPUT);
+  pinMode(8, INPUT);
+  attachInterrupt(digitalPinToInterrupt(A0), Pulse_Event_FM, FALLING);
+  attachInterrupt(digitalPinToInterrupt(4), Pulse_Event_PT, FALLING);
   delay(1000);
   Serial.begin(115200);
 
@@ -1215,7 +1237,7 @@ void setup() {
   startTime = millis();
   InitFromEEPROM();
   InitButtons();
-  //analogWrite(BRIGHTNESS, SelectedBrightness);
+  analogWrite(BRIGHTNESS, SelectedBrightness);
 
   DrawBootScreen();
 
@@ -1257,8 +1279,8 @@ void ClearPlot() {
   tft.print(" ");
 }
 void CheckAutoFill() {
-  if (digitalRead(A0) == HIGH) {
-    if (digitalRead(6) == LOW) {
+  if (digitalRead(A1) == HIGH) {
+    if (digitalRead(7) == LOW) {
       autofillTimer = millis();
       if ((autofillTimer + 5000) >= millis()) {
         autofillSpeed = 120;
@@ -1317,9 +1339,9 @@ void UpdateSettings() {
   }
 }
 void MakeCoffee() {
-  if (digitalRead(A0) == HIGH) {
+  if (digitalRead(A1) == HIGH) {
     digitalWrite(2, LOW);
-    Serial.println("Switch off");
+    Serial.println("Switch is off");
     CheckAutoFill();
     pumpDACValue = 0;
     analogWrite(A7, pumpDACValue);
@@ -1342,7 +1364,7 @@ void MakeCoffee() {
     flowX_PT = 25;
     LunarX = 25;
   }
-  if (digitalRead(A0) == LOW) {
+  if (digitalRead(A1) == LOW) {
     Serial.println("Switch On");
     if (weightStopper == false) {
       digitalWrite(2, HIGH);
