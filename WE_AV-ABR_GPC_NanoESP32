@@ -67,7 +67,7 @@ bool initSlider = true;
 int ShotCounter = 0;
 int ShotCounterInEEPROM;
 
-// variables for Gicar flow meter - PulsesPerRev = 2; ZeroTimeout = 1,800,000; Constrain = 1,500,000 and 300,000
+// variables for Gicar flow meter (FM): PulsesPerRev = 2; ZeroTimeout = 1,800,000; Constrain = 1,500,000 and 300,000
 const byte PulsesPerRevolution_FM = 2;
 const unsigned long ZeroTimeout_FM = 1800000;
 const byte numReadings_FM = 2;
@@ -88,7 +88,7 @@ unsigned long readIndex_FM;
 unsigned long total_FM;
 unsigned long average_FM = 0;
 
-// variables for pump tachometer - PulsesPerRev = 32; zeroTimeout = 100,000; constrain values = 40,000 and 5,000
+// variables for pump tachometer (PT): PulsesPerRev = 32; zeroTimeout = 100,000; constrain values = 40,000 and 5,000
 const byte PulsesPerRevolution_PT = 32;
 const unsigned long ZeroTimeout_PT = 100000;
 const byte numReadings_PT = 2;
@@ -99,10 +99,10 @@ unsigned long FrequencyRaw_PT;
 unsigned long FrequencyReal_PT;
 unsigned long RPM_PT;
 unsigned int PulseCounter_PT = 1;
-unsigned long PeriodSum_PT;
+unsigned long PeriodSum_PT = 10000;
 unsigned long LastTimeCycleMeasure_PT = LastTimeWeMeasured_PT;
 unsigned long CurrentMicros_PT = micros();
-unsigned int AmountOfReadings_PT = 1;
+unsigned int AmountOfReadings_PT = 2;
 unsigned int ZeroDebouncingExtra_PT;
 unsigned long readings_PT[numReadings_PT];
 unsigned long readIndex_PT;
@@ -123,13 +123,12 @@ uint8_t currentTimeSeconds;
 unsigned long ellapsedShotTime;
 unsigned long shotStart;
 unsigned long currentTime;
-//RTCTime ellapsedShotTime;
-//RTCTime shotStartTime;
-//RTCTime currentTime;
 
 unsigned long seconds = 0;
 bool timerRunning;
 bool weightStopper = false;
+#define FLOWMETER A0
+#define PUMPTACH 4
 #define BRIGHTNESS 5
 #define TFT_CS 9
 #define TFT_DC 10
@@ -213,7 +212,6 @@ ProfileType Profiles[NumberOfProfiles] = {
 };
 
 int pressureToDACConvertion(float pressure) {
-  // float dac = 1.05 * pow(pressure,2) + 28.97 * pressure - 34.42;
   float dac = -1.889 * pow(pressure, 2) + (37.667 * pressure) - 46;
   if (dac < 0) {
     dac = 0;
@@ -317,16 +315,8 @@ void PrintPhase() {
   }
 }
 void UpdatePump() {
-  // if (pumpDACValue != lastPumpDACValue)
-  //  {
-  // testingTimer = getTestingTimer();
-
-  // Serial.println(testingTimer);
-  //Serial.println(pumpDACValue);
   analogWrite(A7, pumpDACValue);
   lastPumpDACValue = pumpDACValue;
-  // testingTimer = millis();
-  //  }
 }
 void setNextProfilePhase() {
   ProfileType &profile = Profiles[selectedProfile];
@@ -510,10 +500,10 @@ void PrintSelectedProfile() {
 void DrawPlot() {
   DrawNavButtons();
   PrintSelectedProfile();
-  tft.drawLine(22, 117, 22, 220, TEXT_COLOR);  // plot border, thicker lines
+  tft.drawLine(22, 117, 22, 220, TEXT_COLOR);  // plot border... thicker lines
   tft.drawLine(23, 117, 23, 220, TEXT_COLOR);
   tft.drawLine(24, 117, 24, 220, TEXT_COLOR);
-  tft.drawLine(22, 219, 298, 219, TEXT_COLOR);
+  tft.drawLine(22, 219, 298, 219, TEXT_COLOR); // draw plot thin lines
   tft.drawLine(22, 220, 298, 220, TEXT_COLOR);
   tft.drawLine(22, 221, 298, 221, TEXT_COLOR);
   tft.drawLine(296, 117, 296, 220, TEXT_COLOR);
@@ -646,27 +636,27 @@ void DrawPlot() {
   tft.setCursor(65, 90);
   tft.print("Bar");
   tft.setTextSize(1);
-  tft.setCursor(5, 104);
+  tft.setCursor(30, 110);
   tft.print("Pres.");
   tft.setTextColor(FLOW_COLOR, BACKGROUND_COLOR);
   tft.setCursor(138, 55);
   tft.print("Flow: ");
   tft.setCursor(138, 90);
   tft.print("mL/s");
-  tft.setCursor(260, 104);
-  tft.print("Flo/");
+  tft.setCursor(235, 110);
+  tft.print("Flo /");
   tft.setTextColor(PUMP_COLOR, BACKGROUND_COLOR);
   tft.setCursor(200, 55);
   tft.print("Weight: ");
   tft.setCursor(205, 90);
   tft.print("grams");
   tft.setTextSize(1);
-  tft.setCursor(290, 104);
+  tft.setCursor(275, 110);
   tft.print("Wt.");
   tft.setTextColor(RPM_COLOR, BACKGROUND_COLOR);
-  tft.setCursor(270, 55);
+  tft.setCursor(280, 55);
   tft.print("Pump: ");
-  tft.setCursor(270, 90);
+  tft.setCursor(280, 90);
   tft.print("mL/s");
 }
 void DrawProfiles() {
@@ -826,12 +816,13 @@ void Pulse_Event_PT()  // Pump Tachometer
   }
 }
 void UpdatePlot() {
-  // NOT being connected to the Lunar slows things down... it searches for the Lunar during each loop
-  // Future upgrade may be not having the Arduino search for the Lunar if a shot starts and it isn't connected?
+  // NOT being connected to the Lunar slowed the Uno down, so I broke this out... doesn't seem to make a difference with Nano ESP32 but leaving it in case.
+  // Future upgrade may be to tell the Arduino not to search for the Lunar if it isn't connected and a shot starts?
+  // In addition to that, I think the plot should be changed to plot every so often, rather than EVERY time through the loop?
   if (lunar.connected()) {
-    plotStep = 0.17;
+    plotStep = 0.24;
   } else {
-    plotStep = 0.17;
+    plotStep = 0.24;
   }
 
   //Plot Pressure
@@ -849,7 +840,7 @@ void UpdatePlot() {
   tft.drawLine(LunarX - plotStep, lastLunarPlot, LunarX, LunarPlot, PUMP_COLOR);
   lastLunarPlot = LunarPlot;
   LunarX = LunarX + plotStep;
-  //Plot Pump Tachometer
+  //Plot Pump Tachometer - not being plotted right now, can be added back in later
   //tft.drawCircle(flowX_PT, flowPlot_PT, 1, PUMP_COLOR);
   //tft.drawLine(flowX_PT - plotStep, lastFlowPlot_PT, flowX_PT, flowPlot_PT, PUMP_COLOR);
   //lastFlowPlot_PT = flowPlot_PT;
@@ -978,7 +969,7 @@ bool CheckButtonPress() {
   p.y = map(p.y, 0, 320, 0, 320);
   LastXTouched = p.y;
   LastYTouched = tft.height() - p.x;
-  // tft.drawPixel(LastXTouched, LastYTouched, tft.color565(50,205,50));
+  // tft.drawPixel(LastXTouched, LastYTouched, tft.color565(50,205,50)); //if you need to calibrate touch points
   return true;
 }
 void UpdateShotTimer() {
@@ -1009,7 +1000,7 @@ void UpdateLunar() {
   LunarPlot = map(readLunar, 0.0, 50.0, 218, 118);
   LunarPlot = constrain(LunarPlot, 118, 218);
   tft.setTextSize(3);
-  tft.setCursor(195, 65);
+  tft.setCursor(200, 65);
   tft.setTextColor(PUMP_COLOR, BACKGROUND_COLOR);
   tft.print(abs(readLunar), 1);
   if (readLunar <= 9.9) {
@@ -1108,10 +1099,8 @@ void UpdatePumpTach() {
   }
   FrequencyRaw_PT = 10000000000 / PeriodAverage_PT;  // Calculate the frequency using the period
   if (PeriodBetweenPulses_PT > ZeroTimeout_PT - ZeroDebouncingExtra_PT || CurrentMicros_PT -
-
                                                                               LastTimeCycleMeasure_PT
                                                                             > ZeroTimeout_PT - ZeroDebouncingExtra_PT)
-
   {
     FrequencyRaw_PT = 0;            // Set frequency as 0.
     ZeroDebouncingExtra_PT = 2000;  // Change the threshold a little so it doesn't bounce.
@@ -1133,15 +1122,15 @@ void UpdatePumpTach() {
   average_PT = total_PT / numReadings_PT;
   PT_kilo = average_PT / 1000;
   flowRate_PT = average_PT / 60.0 * 0.3;
-  constrain(flowPlot_PT, 0, 20);
   duty_PT = average_PT / 50;
   flowPlot_PT = map(flowRate_PT * 100, 0.0 * 100, 20.0 * 100, 218, 118);
   flowPlot_PT = constrain(flowPlot_PT, 118, 218);
+  flowRate_PT = RPM_PT / 60.0 * 0.3;
   tft.setTextSize(3);
   tft.setCursor(275, 65);
   tft.setTextColor(RPM_COLOR, BACKGROUND_COLOR);
   tft.print(flowRate_PT,0);
-  if (flowRate_PT <= 9.9) { 
+  if (flowRate_PT <= 9) { 
     tft.print(" ");
   }
 }
@@ -1207,7 +1196,7 @@ void HandleLunar() {
 }
 
 void setup() {
-  pinMode(A0, INPUT);
+  pinMode(A0, INPUT_PULLUP);
   pinMode(A1, INPUT);
   pinMode(A2, INPUT);
   pinMode(A3, INPUT);
@@ -1220,8 +1209,8 @@ void setup() {
   pinMode(6, OUTPUT);
   pinMode(7, INPUT);
   pinMode(8, INPUT);
-  attachInterrupt(digitalPinToInterrupt(A0), Pulse_Event_FM, FALLING);
-  attachInterrupt(digitalPinToInterrupt(4), Pulse_Event_PT, FALLING);
+  attachInterrupt(digitalPinToInterrupt(FLOWMETER), Pulse_Event_FM, RISING);
+  attachInterrupt(digitalPinToInterrupt(PUMPTACH), Pulse_Event_PT, RISING);
   delay(1000);
   Serial.begin(115200);
 
@@ -1240,6 +1229,7 @@ void setup() {
   analogWrite(BRIGHTNESS, SelectedBrightness);
 
   DrawBootScreen();
+  Serial.println("Welcome to the WE AV-ABR Profiling Mod!");
 
   // initialize scale
   found_lunar = false;
@@ -1319,7 +1309,7 @@ void UpdateScreen() {
 void UpdateHome() {
   UpdatePressure();
   UpdateFlowMeter();
-  //UpdatePumpTach();
+  UpdatePumpTach();
   UpdateLunar();
   UpdateShotTimer();
   if (CheckButtonPress()) {
@@ -1380,10 +1370,7 @@ void MakeCoffee() {
     }
     if (!timerRunning) {
       ClearPlot();
-      shotStart = millis(); //added in place of RTC stuff below
-      //RTC.getTime(shotStartTime);
-      //shotStartSeconds = shotStartTime.getHour() * 3600 + shotStartTime.getMinutes() * 60 +
-      //                   shotStartTime.getSeconds();
+      shotStart = millis();
 
       shotTimer = 0;
       resetPhaseTimer();
@@ -1397,11 +1384,9 @@ void MakeCoffee() {
     }
     if (weightStopper == false) {
       RunPhase();
-      UpdateShotTimer();
+      UpdateShotTimer(); //is this a duplicate? UpdateHome also calls out UpdateShotTimer, I think
       UpdatePlot();
       currentTime = millis(); //added in place of RTC stuff below
-      //RTC.getTime(currentTime);
-      //currentTimeSeconds = currentTime.getHour() * 3600 + currentTime.getMinutes() * 60 + currentTime.getSeconds();
     }
     shotTimer = (currentTime - shotStart) / 1000; //removed "Seconds" from the end of currentTime and shotStart for no RTC, and added *1000
   }
