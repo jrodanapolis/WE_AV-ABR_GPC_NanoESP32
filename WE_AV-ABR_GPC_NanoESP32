@@ -6,7 +6,7 @@
 #include <Adafruit_FT6206.h>
 #include <vector>
 #include <string>
-#include <EEPROM.h>
+#include <Preferences.h>
 #include <RTClib.h>
 #include <ArduinoBLE.h>
 #include <lunarGateway.h>
@@ -43,13 +43,13 @@ int sliderEnd = 275;
 int sliderY = 200;
 int lastBrightnessX;
 float DoseSize = 18;
-float DoseSizeInEEPROM;
+float DoseSizeInPreferences;
 int LastXTouched;
 int LastYTouched;
 unsigned long timeDisplay;
 unsigned long startTime = 0;
-int ProfileInEEPROM;
-int BrightnessEEPROM;
+int ProfileInPreferences;
+int BrightnessPreferences;
 int SelectedBrightness = 255;
 
 // Scale variables
@@ -65,7 +65,7 @@ unsigned long scale_read_last_time;
 
 bool initSlider = true;
 int ShotCounter = 0;
-int ShotCounterInEEPROM;
+int ShotCounterInPreferences;
 
 // variables for Gicar flow meter (FM): PulsesPerRev = 2; ZeroTimeout = 1,800,000; Constrain = 1,500,000 and 300,000
 const byte PulsesPerRevolution_FM = 2;
@@ -853,40 +853,39 @@ void UpdatePlot() {
   // Serial.print(",");
   // Serial.print(LunarPlot);
 }
-void InitFromEEPROM() {
-  ProfileInEEPROM = EEPROM.read(0) | EEPROM.read(1) << 8;
-  ShotCounterInEEPROM = EEPROM.read(2) | EEPROM.read(3) << 8;
-  BrightnessEEPROM = EEPROM.read(4) | EEPROM.read(5) << 8;
-  if (ProfileInEEPROM == 255) {
-    ProfileInEEPROM = selectedProfile;
+void InitFromPreferences() {
+
+  Preferences.begin("BrewSettings", false);
+  ProfileInPreferences = Preferences.getUInt("profile", 255);
+  ShotCounterInPreferences = Preferences.getUInt("shotCounter", 255);
+  BrightnessPreferences = Preferences.getUInt("brightness", 255);
+
+  if (ProfileInPreferences == 255) {
+    ProfileInPreferences = selectedProfile;
     lastSelectedProfile = selectedProfile;
-    EEPROM.write(0, lowByte(ProfileInEEPROM));
-    EEPROM.write(1, highByte(ProfileInEEPROM));
+    Preferences.putUInt("profile", ProfileInPreferences);
   } else {
-    selectedProfile = ProfileInEEPROM;
+    selectedProfile = ProfileInPreferences;
     lastSelectedProfile = selectedProfile;
   }
-  if (ShotCounterInEEPROM == 255) {
-    ShotCounterInEEPROM = ShotCounter;
-    EEPROM.write(2, lowByte(ShotCounterInEEPROM));
-    EEPROM.write(3, highByte(ShotCounterInEEPROM));
+  if (ShotCounterInPreferences == 255) {
+    ShotCounterInPreferences = ShotCounter;
+    Preferences.putUInt("shotCount", ShotCounterInPreferences);
   } else {
-    ShotCounter = ShotCounterInEEPROM;
+    ShotCounter = ShotCounterInPreferences;
   }
-  if (BrightnessEEPROM < 30) {
-    BrightnessEEPROM = SelectedBrightness;
-    EEPROM.write(4, lowByte(BrightnessEEPROM));
-    EEPROM.write(5, highByte(BrightnessEEPROM));
+  if (BrightnessPreferences < 30) {
+    BrightnessPreferences = SelectedBrightness;
+    Preferences.putUInt("brightness", BrightnessPreferences);
   } else {
-    SelectedBrightness = BrightnessEEPROM;
+    SelectedBrightness = BrightnessPreferences;
   }
 }
 
 void WriteShotCounter() {
-  if (ShotCounterInEEPROM != ShotCounter) {
-    ShotCounterInEEPROM = ShotCounter;
-    EEPROM.write(2, lowByte(ShotCounterInEEPROM));
-    EEPROM.write(3, highByte(ShotCounterInEEPROM));
+  if (ShotCounterInPreferences != ShotCounter) {
+    ShotCounterInPreferences = ShotCounter;
+    Preferences.putUInt("shortCounter", ShotCounterInPreferences);
     tft.setTextColor(TEXT_COLOR, BACKGROUND_COLOR);
     tft.setTextSize(1);
     tft.setCursor(0, 225);
@@ -898,17 +897,15 @@ void WriteShotCounter() {
   }
 }
 void WriteSelectedProfile() {
-  if (ProfileInEEPROM != selectedProfile) {
-    ProfileInEEPROM = selectedProfile;
-    EEPROM.write(0, lowByte(ProfileInEEPROM));
-    EEPROM.write(1, highByte(ProfileInEEPROM));
+  if (ProfileInPreferences != selectedProfile) {
+    ProfileInPreferences = selectedProfile;
+    Preferences.putUInt("profile", ProfileInPreferences);
   }
 }
 void WriteSelectedBrightness() {
-  if (BrightnessEEPROM != SelectedBrightness) {
-    BrightnessEEPROM = SelectedBrightness;
-    EEPROM.write(4, lowByte(BrightnessEEPROM));
-    EEPROM.write(5, highByte(BrightnessEEPROM));
+  if (BrightnessPreferences != SelectedBrightness) {
+    BrightnessPreferences = SelectedBrightness;
+    Preferences.putUInt("brightness", BrightnessPreferences);
   }
 }
 void HandleTouchOnHome() {
@@ -1224,7 +1221,7 @@ void setup() {
   ts.begin(2400000);
   tft.setRotation(3);
   startTime = millis();
-  InitFromEEPROM();
+  InitFromPreferences();
   InitButtons();
   analogWrite(BRIGHTNESS, SelectedBrightness);
 
