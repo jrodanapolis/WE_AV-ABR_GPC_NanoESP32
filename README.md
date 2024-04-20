@@ -12,5 +12,5 @@ A 2021 Acaia Lunar will automatically connect to the Arduino using this software
 
 PCBs, mechanical parts (paddle assembly for EMP mode and pump bracket), wiring kits and hydraulics kits are in the works. Getting everything to work together has been a major undertaking!
 
-Please reach out with any questions or to get involved - WE are looking for as many contributors as possible! 
+Please reach out with any questions or to get involved or if you're working on a similar mod - we'd like as many contributors as possible, and I love hearing about other projects! 
 Jared.Bandel@gmail.com
