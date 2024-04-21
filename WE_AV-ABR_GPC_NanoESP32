@@ -1,15 +1,15 @@
 #include <Arduino.h>
-#include <SPI.h>
 #include <Adafruit_GFX.h>
+#include <SPI.h>
 #include <Wire.h>
 #include <Adafruit_ILI9341.h>
 #include <Adafruit_FT6206.h>
-#include <vector>
-#include <string>
-#include <EEPROM.h>
-#include <RTClib.h>
+#include <Preferences.h>
 #include <ArduinoBLE.h>
 #include <lunarGateway.h>
+#include <vector>
+#include <string>
+Preferences Preferences;
 int potentiometer = 0;
 int pumpDACValue = 0;
 int lastPumpDACValue = 0;
@@ -43,13 +43,13 @@ int sliderEnd = 275;
 int sliderY = 200;
 int lastBrightnessX;
 float DoseSize = 18;
-float DoseSizeInEEPROM;
+float DoseSizeInPreferences;
 int LastXTouched;
 int LastYTouched;
 unsigned long timeDisplay;
 unsigned long startTime = 0;
-int ProfileInEEPROM;
-int BrightnessEEPROM;
+int ProfileInPreferences;
+int BrightnessPreferences;
 int SelectedBrightness = 255;
 
 // Scale variables
@@ -62,12 +62,13 @@ bool lunar_session_init;
 int lunar_state;
 bool lunar_start_timer;
 unsigned long scale_read_last_time;
-
 bool initSlider = true;
 int ShotCounter = 0;
-int ShotCounterInEEPROM;
+int ShotCounterInPreferences;
+bool weightStopper = false;
 
-// variables for Gicar flow meter (FM): PulsesPerRev = 2; ZeroTimeout = 1,800,000; Constrain = 1,500,000 and 300,000
+// Variables for Gicar flow meter ("FM" throughout code)
+// Tuning variables: PulsesPerRev = 2; ZeroTimeout = 1,800,000; Constrain = 1,500,000 and 300,000
 const byte PulsesPerRevolution_FM = 2;
 const unsigned long ZeroTimeout_FM = 1800000;
 const byte numReadings_FM = 2;
@@ -78,7 +79,7 @@ unsigned long FrequencyRaw_FM;
 unsigned long FrequencyReal_FM;
 unsigned long RPM_FM;
 unsigned int PulseCounter_FM = 1;
-unsigned long PeriodSum_FM;
+unsigned long PeriodSum_FM = 1000;
 unsigned long LastTimeCycleMeasure_FM = LastTimeWeMeasured_FM;
 unsigned long CurrentMicros_FM = micros();
 unsigned int AmountOfReadings_FM = 1;
@@ -88,7 +89,8 @@ unsigned long readIndex_FM;
 unsigned long total_FM;
 unsigned long average_FM = 0;
 
-// variables for pump tachometer (PT): PulsesPerRev = 32; zeroTimeout = 100,000; constrain values = 40,000 and 5,000
+// Variables for pump tachometer ("PT" througout code)
+// Tuning variables: PulsesPerRev = 32; zeroTimeout = 100,000; constrain values = 40,000 and 5,000
 const byte PulsesPerRevolution_PT = 32;
 const unsigned long ZeroTimeout_PT = 100000;
 const byte numReadings_PT = 2;
@@ -111,6 +113,7 @@ unsigned long average_PT = 0;
 unsigned long PT_kilo = 0;
 unsigned long duty_PT = 0;
 
+// Shot timer variables
 int phaseTimer = 0;
 unsigned long lastPhaseTimeMillis = 0.0;
 unsigned long testingTimer = 0.0;
@@ -119,19 +122,30 @@ uint8_t shotTimer;
 uint8_t lastShotTimer = 0;
 uint8_t shotStartSeconds;
 uint8_t currentTimeSeconds;
-
 unsigned long ellapsedShotTime;
 unsigned long shotStart;
 unsigned long currentTime;
-
 unsigned long seconds = 0;
 bool timerRunning;
-bool weightStopper = false;
-#define FLOWMETER A0
-#define PUMPTACH 4
-#define BRIGHTNESS 5
+
+// pin definitions
+#define FLOWMETERPIN A0
+#define SWITCHPIN A1
+#define POTENTIOMETERPIN A2
+#define PRESSUREPIN A3
+#define AUTOFILLSPEEDPIN A6
+#define BREWSPEEDPIN A7
+#define BREWSOLENOIDPIN 2
+#define AUTOFILLSOLENOIDPIN 3
+#define PUMPTACHPIN 4
+#define BRIGHTNESSPIN 5
+#define SDCSPIN 6 // For the screen SD card, not used yet
+#define OEMAUTOFILLREADPIN 7
+#define OEMBREWREADPIN 8
 #define TFT_CS 9
 #define TFT_DC 10
+
+// Wired screen setup
 Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC);
 Adafruit_FT6206 ts = Adafruit_FT6206();
 const uint16_t BACKGROUND_COLOR = tft.color565(0, 0, 0);
@@ -145,6 +159,8 @@ const uint16_t BUTTON_COLOR = tft.color565(27, 45, 42);
 const uint16_t BUTTON_OUTLINE_COLOR = tft.color565(247, 247, 255);
 const uint16_t TEXT_COLOR = tft.color565(247, 247, 255);
 const uint16_t GRID_COLOR = tft.color565(72, 72, 72);
+
+// Profile selection and profile button variables
 #define NUMBER_OF_BUTTONS 9
 Adafruit_GFX_Button buttons[NUMBER_OF_BUTTONS];
 #define PROFILES_NAV 0
@@ -202,15 +218,17 @@ struct ProfileType {
 };
 ProfileType Profiles[NumberOfProfiles] = {
   { "EMP", 40, 30, 76, 56, Manual, { { " Manual", 0.0, 0.0, 0.0, 0, 0, false, false, false, false, false } } },
-  { "3-6-9", 120, 30, 76, 56, Interactive, { { "3 Bar", 3.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "6 Bar", 6.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "9 Bar", 9.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, {" Line ", 0.0, 0.0, 0.0, 0, 0, false, false, false, false, true } } },
-  { "Slayer 6", 40, 90, 76, 56, Interactive, { { "  PI  ", 3.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "6 Bar", 6.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "6 Bar", 6.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, {" Line ", 0.0, 0.0, 0.0, 0, 0, false, false, false, false, true } } },
-  { "Slayer 9", 120, 90, 76, 56, Interactive, { { "  PI  ", 3.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "9 Bar", 9.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "9 Bar", 9.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, {" Line ", 0.0, 0.0, 0.0, 0, 0, false, false, false, false, true } } },
+  { "3-6-9", 120, 30, 76, 56, Interactive, { { "3 Bar", 3.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "6 Bar", 6.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "9 Bar", 9.0, 0.0, 0.0, 0, 0, false, false, false, false, true } } },
+  { "Slayer 6", 40, 90, 76, 56, Interactive, { { "  PI  ", 3.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "6 Bar", 6.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "6 Bar", 6.0, 0.0, 0.0, 0, 0, false, false, false, false, true } } },
+  { "Slayer 9", 120, 90, 76, 56, Interactive, { { "  PI  ", 3.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "9 Bar", 9.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "9 Bar", 9.0, 0.0, 0.0, 0, 0, false, false, false, false, true } } },
   { "WE Pro 2:1", 40, 150, 76, 56, Automatic, { { "Start", 2.5, 0, 40.0, 2, 0, false, false, true, true, false }, { "PI 1/2", 4.5, 0.0, 40.0, 12, 6, false, false, true, true, false }, { "PI 2/2", 2.5, 0.0, 40.0, 15, 10, false, false, true, true, false }, { "9 Bar", 8, 0.0, 40.0, 15, 3, false, false, true, true, false }, { "Decrease", 6.5, 0.0, 40.0, 15, 15, false, false, true, true, false }, { " Hold ", 6.5, 0.0, 40.0, 30, 30, false, false, true, true, false } } },
   { "WE Pro 3:1", 120, 150, 76, 56, Automatic, { { "Start", 2.5, 0, 50.0, 2, 0, false, false, true, true, false }, { "PI 1/2", 4.5, 0.0, 50.0, 12, 6, false, false, true, true, false }, { "PI 2/2", 2.5, 0.0, 50.0, 15, 10, false, false, true, true, false }, { "9 Bar", 8, 0.0, 50.0, 15, 3, false, false, true, true, false }, { "Decrease", 6.5, 0.0, 50.0, 15, 15, false, false, true, true, false }, { " Hold ", 6.5, 0.0, 50.0, 30, 30, false, false, true, true, false } } },
   { "Leva X", 40, 210, 76, 56, Automatic, { { "PI", 3.0, 0.0, 0.0, 10, 1, false, false, true, false, false }, { "Ramp", 9.0, 0.0, 0.0, 2, 1, true, false, true, false, false }, { "Decrease", 4.0, 0.0, 0.0, 40, 40, false, false, true, false, false }, { "Finishing", 4.0, 0.0, 0.0, 8, 3, false, false, true, false, false } } },
   { "Flat 6", 120, 210, 76, 56, Automatic, { { "PI", 3.0, 0.0, 0.0, 15, 1, false, false, true, false, false }, { "Ramp", 6.0, 0.0, 0.0, 3, 0, false, false, true, false, false }, { "6 Bar", 6.0, 0.0, 0.0, 42, 0, false, false, true, false, false } } },
 };
 
+// converting target pressure into a DAC value for the profiles... the "pressures" current set in the profiles above won't go off of read pressure, but rather target pressure
+// this would be a great place to work in a pressure PID/feedback loop for true pressure profiling instead of targeted pressure profiling
 int pressureToDACConvertion(float pressure) {
   float dac = -1.889 * pow(pressure, 2) + (37.667 * pressure) - 46;
   if (dac < 0) {
@@ -277,23 +295,27 @@ int calculatePumpDACValue(ProfileType profile) {
   lastPressure = thisPhasePressure;
   return pressureToDACConvertion(thisPhasePressure);
 }
+
+// Reading the state of the paddle and potentiometer... different zones for Slayer and 3-6-9 modes. EMP calculated elsewhere.
 int getPaddleState() {
   if (Profiles[selectedProfile].mode != Interactive) {
     return -1;
   }
-  if (analogRead(A2) >= 2203) {
+  if (analogRead(POTENTIOMETERPIN) >= 2203) {
     return 0;
   }
-  if ((analogRead(A2) < 2203) && (analogRead(A2) >= 1937)) {
+  if ((analogRead(POTENTIOMETERPIN) < 2203) && (analogRead(POTENTIOMETERPIN) >= 1937)) {
     return 1;
   }
-  if ((analogRead(A2) < 1937) && (analogRead(A2) >= 1489)) {
+  if ((analogRead(POTENTIOMETERPIN) < 1937) && (analogRead(POTENTIOMETERPIN) >= 1489)) {
     return 2;
   }
-  if (analogRead(A3) <= 1489) {
+  if (analogRead(POTENTIOMETERPIN) <= 1489) {
     return 3;
   }
 }
+
+// Phase name printout while profiling a shot
 void PrintPhase() {
   ProfileType profile = Profiles[selectedProfile];
   tft.setTextSize(2);
@@ -314,10 +336,14 @@ void PrintPhase() {
     tft.println(profile.profilePhases[profile.currentProfilePhase].name);
   }
 }
+
+// Simple void to update pump speed
 void UpdatePump() {
-  analogWrite(A7, pumpDACValue);
+  analogWrite(BREWSPEEDPIN, pumpDACValue);
   lastPumpDACValue = pumpDACValue;
 }
+
+
 void setNextProfilePhase() {
   ProfileType &profile = Profiles[selectedProfile];
   pressureStepSize = 0.0;
@@ -348,6 +374,8 @@ void setNextProfilePhase() {
     lastPaddleState = profile.currentProfilePhase;
   }
 }
+
+//Check if the profile phase has reached the point where you want it to move to the next phase
 bool CheckExitCriteria() {
   bool exit = false;
   ProfileType &profile = Profiles[selectedProfile];
@@ -375,7 +403,7 @@ bool CheckExitCriteria() {
       Serial.println("weightStopper TRUE line 370");
       Profiles[selectedProfile].profileState = Stopped;
       pumpDACValue = 0;
-      analogWrite(A7, pumpDACValue);
+      analogWrite(BREWSPEEDPIN, pumpDACValue);
     }
   }
   return exit;
@@ -500,10 +528,10 @@ void PrintSelectedProfile() {
 void DrawPlot() {
   DrawNavButtons();
   PrintSelectedProfile();
-  tft.drawLine(22, 117, 22, 220, TEXT_COLOR);  // plot border... thicker lines
+  tft.drawLine(22, 117, 22, 220, TEXT_COLOR);  // plot border... 3x pixel wide, thicker lines
   tft.drawLine(23, 117, 23, 220, TEXT_COLOR);
   tft.drawLine(24, 117, 24, 220, TEXT_COLOR);
-  tft.drawLine(22, 219, 298, 219, TEXT_COLOR); // draw plot thin lines
+  tft.drawLine(22, 219, 298, 219, TEXT_COLOR);
   tft.drawLine(22, 220, 298, 220, TEXT_COLOR);
   tft.drawLine(22, 221, 298, 221, TEXT_COLOR);
   tft.drawLine(296, 117, 296, 220, TEXT_COLOR);
@@ -696,9 +724,9 @@ void InitButtons() {
   UpDown[1].initButton(&tft, 225, 145, 25, 25, BUTTON_OUTLINE_COLOR, BUTTON_COLOR, TEXT_COLOR, "-", 1);
 }
 int UpdateManual() {
-  potentiometer = analogRead(A2);
+  potentiometer = analogRead(POTENTIOMETERPIN);
   Serial.print(potentiometer);
-  if (analogRead(A2) >= 1600) {
+  if (potentiometer >= 1600) {
     return (-0.25 * potentiometer) + 580;
   } else {
     return 0;
@@ -758,7 +786,7 @@ void InitBrightness() {
   tft.setCursor(20, 165);
   tft.print("Brightness");
   lastBrightnessX = SelectedBrightness;
-  analogWrite(BRIGHTNESS, SelectedBrightness);
+  analogWrite(BRIGHTNESSPIN, SelectedBrightness);
 }
 
 void UpdateBrightness(int newXValue) {
@@ -777,11 +805,11 @@ void UpdateBrightness(int newXValue) {
 
     SelectedBrightness = newXValue - sliderStart;
     lastBrightnessX = SelectedBrightness;
-    analogWrite(BRIGHTNESS, SelectedBrightness);
+    analogWrite(BRIGHTNESSPIN, SelectedBrightness);
   }
 }
 
-void Pulse_Event_FM()  // Flow Meter
+void Pulse_Event_FM()  // Flow Meter interrupt function
 {
   PeriodBetweenPulses_FM = micros() - LastTimeWeMeasured_FM;
   LastTimeWeMeasured_FM = micros();
@@ -798,7 +826,7 @@ void Pulse_Event_FM()  // Flow Meter
     PeriodSum_FM = PeriodSum_FM + PeriodBetweenPulses_FM;
   }
 }
-void Pulse_Event_PT()  // Pump Tachometer
+void Pulse_Event_PT()  // Pump Tachometer interrupt function
 {
   PeriodBetweenPulses_PT = micros() - LastTimeWeMeasured_PT;
   LastTimeWeMeasured_PT = micros();
@@ -853,40 +881,39 @@ void UpdatePlot() {
   // Serial.print(",");
   // Serial.print(LunarPlot);
 }
-void InitFromEEPROM() {
-  ProfileInEEPROM = EEPROM.read(0) | EEPROM.read(1) << 8;
-  ShotCounterInEEPROM = EEPROM.read(2) | EEPROM.read(3) << 8;
-  BrightnessEEPROM = EEPROM.read(4) | EEPROM.read(5) << 8;
-  if (ProfileInEEPROM == 255) {
-    ProfileInEEPROM = selectedProfile;
+void InitFromPreferences() {
+
+  Preferences.begin("BrewSettings", false);
+  ProfileInPreferences = Preferences.getUInt("profile", 255);
+  ShotCounterInPreferences = Preferences.getUInt("shotCounter", 255);
+  BrightnessPreferences = Preferences.getUInt("brightness", 255);
+
+  if (ProfileInPreferences == 255) {
+    ProfileInPreferences = selectedProfile;
     lastSelectedProfile = selectedProfile;
-    EEPROM.write(0, lowByte(ProfileInEEPROM));
-    EEPROM.write(1, highByte(ProfileInEEPROM));
+    Preferences.putUInt("profile", ProfileInPreferences);
   } else {
-    selectedProfile = ProfileInEEPROM;
+    selectedProfile = ProfileInPreferences;
     lastSelectedProfile = selectedProfile;
   }
-  if (ShotCounterInEEPROM == 255) {
-    ShotCounterInEEPROM = ShotCounter;
-    EEPROM.write(2, lowByte(ShotCounterInEEPROM));
-    EEPROM.write(3, highByte(ShotCounterInEEPROM));
+  if (ShotCounterInPreferences == 255) {
+    ShotCounterInPreferences = ShotCounter;
+    Preferences.putUInt("shotCount", ShotCounterInPreferences);
   } else {
-    ShotCounter = ShotCounterInEEPROM;
+    ShotCounter = ShotCounterInPreferences;
   }
-  if (BrightnessEEPROM < 30) {
-    BrightnessEEPROM = SelectedBrightness;
-    EEPROM.write(4, lowByte(BrightnessEEPROM));
-    EEPROM.write(5, highByte(BrightnessEEPROM));
+  if (BrightnessPreferences < 30) {
+    BrightnessPreferences = SelectedBrightness;
+    Preferences.putUInt("brightness", BrightnessPreferences);
   } else {
-    SelectedBrightness = BrightnessEEPROM;
+    SelectedBrightness = BrightnessPreferences;
   }
 }
 
 void WriteShotCounter() {
-  if (ShotCounterInEEPROM != ShotCounter) {
-    ShotCounterInEEPROM = ShotCounter;
-    EEPROM.write(2, lowByte(ShotCounterInEEPROM));
-    EEPROM.write(3, highByte(ShotCounterInEEPROM));
+  if (ShotCounterInPreferences != ShotCounter) {
+    ShotCounterInPreferences = ShotCounter;
+    Preferences.putUInt("shortCounter", ShotCounterInPreferences);
     tft.setTextColor(TEXT_COLOR, BACKGROUND_COLOR);
     tft.setTextSize(1);
     tft.setCursor(0, 225);
@@ -898,17 +925,15 @@ void WriteShotCounter() {
   }
 }
 void WriteSelectedProfile() {
-  if (ProfileInEEPROM != selectedProfile) {
-    ProfileInEEPROM = selectedProfile;
-    EEPROM.write(0, lowByte(ProfileInEEPROM));
-    EEPROM.write(1, highByte(ProfileInEEPROM));
+  if (ProfileInPreferences != selectedProfile) {
+    ProfileInPreferences = selectedProfile;
+    Preferences.putUInt("profile", ProfileInPreferences);
   }
 }
 void WriteSelectedBrightness() {
-  if (BrightnessEEPROM != SelectedBrightness) {
-    BrightnessEEPROM = SelectedBrightness;
-    EEPROM.write(4, lowByte(BrightnessEEPROM));
-    EEPROM.write(5, highByte(BrightnessEEPROM));
+  if (BrightnessPreferences != SelectedBrightness) {
+    BrightnessPreferences = SelectedBrightness;
+    Preferences.putUInt("brightness", BrightnessPreferences);
   }
 }
 void HandleTouchOnHome() {
@@ -969,7 +994,7 @@ bool CheckButtonPress() {
   p.y = map(p.y, 0, 320, 0, 320);
   LastXTouched = p.y;
   LastYTouched = tft.height() - p.x;
-  // tft.drawPixel(LastXTouched, LastYTouched, tft.color565(50,205,50)); //if you need to calibrate touch points
+  // tft.drawPixel(LastXTouched, LastYTouched, tft.color565(50,205,50)); //uncomment if you need to see where you're touching
   return true;
 }
 void UpdateShotTimer() {
@@ -982,7 +1007,7 @@ void UpdateShotTimer() {
   }
 }
 void UpdatePressure() {
-  vPres = (float)analogRead(A3);
+  vPres = (float)analogRead(PRESSUREPIN);
   readPressure = ((((vPres / 4095) - 0.1) * 200 / 0.8) * 0.0689476) + 0.5; //added 0.5 to match machine pressure guage, but not sure if it's more or less accurate?
   // presPlot = readPressure;
   presPlot = map(readPressure * 100, 0.0 * 100, 10 * 100, 218, 118);
@@ -1008,45 +1033,6 @@ void UpdateLunar() {
   }
 }
 
-// void ResetFlowCalculations()
-// {
-// // variables for flow meter - PulsesPerRev = 2; ZeroTimeout = 1,800,000; Constrain = 1,500,000 and 300, 000
-
-// LastTimeWeMeasured_FM = 0;
-// FrequencyRaw_FM = 0;
-// FrequencyReal_FM = 0;
-// RPM_FM = 0;;
-// PulseCounter_FM = 1;
-// PeriodSum_FM = 0;
-// LastTimeCycleMeasure_FM = LastTimeWeMeasured_FM;
-// CurrentMicros_FM = micros();
-// AmountOfReadings_FM = 1;
-// readings_FM[0] = 0;
-// readings_FM[1] = 0;
-// readIndex_FM = 0;
-// total_FM = 0;
-// average_FM = 0;
-// // variables for pump RPM - PulsesPerRev = 32; zeroTimeout = 100,000; constrain values = 40, 000 and 5, 000
-
-// LastTimeWeMeasured_PT = 0;
-
-// FrequencyRaw_PT = 0;
-// FrequencyReal_PT = 0;
-// RPM_PT = 0;
-// PulseCounter_PT = 1;
-// PeriodSum_PT = 0;
-// LastTimeCycleMeasure_PT = LastTimeWeMeasured_PT;
-// CurrentMicros_PT = micros();
-// AmountOfReadings_PT = 1;
-
-// readings_PT[0] = 0;
-// readings_PT[1] = 1;
-// readIndex_PT = 0;
-// total_PT = 0;
-// average_PT = 0;
-// duty_PT = 0;
-
-// }
 void UpdateFlowMeter() {
   LastTimeCycleMeasure_FM = LastTimeWeMeasured_FM;
   CurrentMicros_FM = micros();
@@ -1197,9 +1183,9 @@ void HandleLunar() {
 
 void setup() {
   pinMode(A0, INPUT_PULLUP);
-  pinMode(A1, INPUT);
-  pinMode(A2, INPUT);
-  pinMode(A3, INPUT);
+  pinMode(SWITCHPIN, INPUT);
+  pinMode(POTENTIOMETERPIN, INPUT);
+  pinMode(PRESSUREPIN, INPUT);
   pinMode(A6, OUTPUT);
   pinMode(A7, OUTPUT);
   pinMode(2, OUTPUT);
@@ -1209,24 +1195,20 @@ void setup() {
   pinMode(6, OUTPUT);
   pinMode(7, INPUT);
   pinMode(8, INPUT);
-  attachInterrupt(digitalPinToInterrupt(FLOWMETER), Pulse_Event_FM, RISING);
-  attachInterrupt(digitalPinToInterrupt(PUMPTACH), Pulse_Event_PT, RISING);
+  attachInterrupt(digitalPinToInterrupt(FLOWMETERPIN), Pulse_Event_FM, RISING);
+  attachInterrupt(digitalPinToInterrupt(PUMPTACHPIN), Pulse_Event_PT, RISING);
   delay(1000);
   Serial.begin(115200);
 
-  //RTC.begin();
-  //RTCTime startTime(7, Month::JULY, 2023, 24, 12, 10, DayOfWeek::MONDAY,
-  //                  SaveLight::SAVING_TIME_ACTIVE);
-  //RTC.setTime(startTime);
   timerRunning = false;
   
   tft.begin(2400000);
   ts.begin(2400000);
   tft.setRotation(3);
   startTime = millis();
-  InitFromEEPROM();
+  InitFromPreferences();
   InitButtons();
-  analogWrite(BRIGHTNESS, SelectedBrightness);
+  analogWrite(BRIGHTNESSPIN, SelectedBrightness);
 
   DrawBootScreen();
   Serial.println("Welcome to the WE AV-ABR Profiling Mod!");
@@ -1269,12 +1251,12 @@ void ClearPlot() {
   tft.print(" ");
 }
 void CheckAutoFill() {
-  if (digitalRead(A1) == HIGH) {
-    if (digitalRead(7) == LOW) {
+  if (digitalRead(SWITCHPIN) == HIGH) {
+    if (digitalRead(OEMAUTOFILLREADPIN) == LOW) {
       autofillTimer = millis();
       if ((autofillTimer + 5000) >= millis()) {
         autofillSpeed = 120;
-        analogWrite(A6, autofillSpeed);
+        analogWrite(AUTOFILLSPEEDPIN, autofillSpeed);
       }
       if (SelectedScreen == HOME) {
         tft.setTextSize(2);
@@ -1284,7 +1266,7 @@ void CheckAutoFill() {
       }
     } else {
       autofillSpeed = 0;
-      analogWrite(A6, autofillSpeed);
+      analogWrite(AUTOFILLSPEEDPIN, autofillSpeed);
       tft.setTextSize(2);
       tft.setCursor(getCenteredX("           "), 30);
       tft.setTextColor(TEXT_COLOR, BACKGROUND_COLOR);
@@ -1329,12 +1311,12 @@ void UpdateSettings() {
   }
 }
 void MakeCoffee() {
-  if (digitalRead(A1) == HIGH) {
-    digitalWrite(2, LOW);
+  if (digitalRead(SWITCHPIN) == HIGH) {
+    digitalWrite(BREWSOLENOIDPIN, LOW);
     Serial.println("Switch is off");
     CheckAutoFill();
     pumpDACValue = 0;
-    analogWrite(A7, pumpDACValue);
+    analogWrite(BREWSPEEDPIN, pumpDACValue);
     if (weightStopper = true) {
       weightStopper = false;
       Serial.println("weightStopper FALSE Line 1262");
@@ -1354,15 +1336,15 @@ void MakeCoffee() {
     flowX_PT = 25;
     LunarX = 25;
   }
-  if (digitalRead(A1) == LOW) {
+  if (digitalRead(SWITCHPIN) == LOW) {
     Serial.println("Switch On");
     if (weightStopper == false) {
-      digitalWrite(2, HIGH);
+      digitalWrite(BREWSOLENOIDPIN, HIGH);
       Serial.println("Solenoid open!");
     }
     if (weightStopper == true) {
       Serial.println("weightStopper TRUE Line 1354");
-      digitalWrite(2, LOW);
+      digitalWrite(BREWSOLENOIDPIN, LOW);
       Serial.println("Weight reached! Solenoid closed!");
     }
     if (SelectedScreen != HOME) {
@@ -1380,15 +1362,15 @@ void MakeCoffee() {
       Profiles[selectedProfile].profileState = Running;
       PrintPhase();
       pumpDACValue = 0;
-      analogWrite(A7, pumpDACValue);
+      analogWrite(BREWSPEEDPIN, pumpDACValue);
     }
     if (weightStopper == false) {
       RunPhase();
       UpdateShotTimer(); //is this a duplicate? UpdateHome also calls out UpdateShotTimer, I think
       UpdatePlot();
-      currentTime = millis(); //added in place of RTC stuff below
+      currentTime = millis(); 
     }
-    shotTimer = (currentTime - shotStart) / 1000; //removed "Seconds" from the end of currentTime and shotStart for no RTC, and added *1000
+    shotTimer = (currentTime - shotStart) / 1000;
   }
 }
 void loop(void) {
