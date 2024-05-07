@@ -130,16 +130,16 @@ bool timerRunning;
 
 // pin definitions
 #define FLOWMETERPIN A0
-#define SWITCHPIN A1
-#define POTENTIOMETERPIN A2
-#define PRESSUREPIN A3
+#define PRESSUREPIN A1
+#define SWITCHPIN A2
+#define POTENTIOMETERPIN A3
 #define AUTOFILLSPEEDPIN A6
 #define BREWSPEEDPIN A7
 #define BREWSOLENOIDPIN 2
 #define AUTOFILLSOLENOIDPIN 3
 #define PUMPTACHPIN 4
-#define BRIGHTNESSPIN 5
-#define SDCSPIN 6 // For the screen SD card, not used yet
+#define SDCSPIN 5 // SD card (mounted to screen), not used yet
+#define BRIGHTNESSPIN 6
 #define OEMAUTOFILLREADPIN 7
 #define OEMBREWREADPIN 8
 #define TFT_CS 9
@@ -725,8 +725,8 @@ void InitButtons() {
 }
 int UpdateManual() {
   potentiometer = analogRead(POTENTIOMETERPIN);
-  Serial.print(potentiometer);
-  if (potentiometer >= 1600) {
+  Serial.println(potentiometer);
+  if (potentiometer >= 1750) {
     return (-0.25 * potentiometer) + 580;
   } else {
     return 0;
@@ -1182,7 +1182,7 @@ void HandleLunar() {
 }
 
 void setup() {
-  pinMode(A0, INPUT_PULLUP);
+  pinMode(A0, INPUT_PULLDOWN);
   pinMode(SWITCHPIN, INPUT);
   pinMode(POTENTIOMETERPIN, INPUT);
   pinMode(PRESSUREPIN, INPUT);
@@ -1195,7 +1195,7 @@ void setup() {
   pinMode(6, OUTPUT);
   pinMode(7, INPUT);
   pinMode(8, INPUT);
-  attachInterrupt(digitalPinToInterrupt(FLOWMETERPIN), Pulse_Event_FM, RISING);
+  attachInterrupt(digitalPinToInterrupt(FLOWMETERPIN), Pulse_Event_FM, FALLING);
   attachInterrupt(digitalPinToInterrupt(PUMPTACHPIN), Pulse_Event_PT, RISING);
   delay(1000);
   Serial.begin(115200);
