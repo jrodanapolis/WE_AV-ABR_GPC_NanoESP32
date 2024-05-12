@@ -2,8 +2,8 @@
 #include <Adafruit_GFX.h>
 #include <SPI.h>
 #include <Wire.h>
-#include <Adafruit_ILI9341.h>
-#include <Adafruit_FT6206.h>
+#include <Adafruit_HX8357.h>
+#include <Adafruit_FT5336.h>
 #include <Preferences.h>
 #include <ArduinoBLE.h>
 #include <lunarGateway.h>
@@ -19,22 +19,22 @@ float vPres = 0;
 float readPressure = 0.0;
 float presPlot = 0.0;
 float lastPresPlot = 220;
-float presX = 24;
+float presX = 36;
 float flowRate_FM;
 float flowRate_FM_Display;
-float flowX_FM = 24;
+float flowX_FM = 36;
 float flowPlot_FM = 0.0;
 float lastFlowPlot_FM = 220;
 float flowRate_PT;
-float flowX_PT = 24;
+float flowX_PT = 36;
 float flowPlot_PT = 0.0;
 float lastFlowPlot_PT = 220;
 float readLunar = 0.0;
 float LunarPlot = 0.0;
 float lastLunarPlot = 220;
-float LunarX = 24;
+float LunarX = 36;
 float dripFactor = 2.0;
-float plotStep = 0.17;
+float plotStep = 0.48;
 int autofillTimer = 0;
 int autofillSpeed = 0;
 int counter;
@@ -138,22 +138,24 @@ bool timerRunning;
 #define BREWSOLENOIDPIN 2
 #define AUTOFILLSOLENOIDPIN 3
 #define PUMPTACHPIN 4
-#define SDCSPIN 5 // SD card (mounted to screen), not used yet
+#define SDCSPIN 5  // SD card (mounted to screen), not used yet
 #define BRIGHTNESSPIN 6
 #define OEMAUTOFILLREADPIN 7
 #define OEMBREWREADPIN 8
 #define TFT_CS 9
 #define TFT_DC 10
+#define TFT_RST -1
 
 // Wired screen setup
-Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC);
-Adafruit_FT6206 ts = Adafruit_FT6206();
+Adafruit_HX8357 tft = Adafruit_HX8357(TFT_CS, TFT_DC);
+Adafruit_FT5336 ctp = Adafruit_FT5336();
+#define FT5336_MAXTOUCHES 5
 const uint16_t BACKGROUND_COLOR = tft.color565(0, 0, 0);
+const uint16_t TIME_COLOR = tft.color565(238, 99, 82);
 const uint16_t PRESSURE_COLOR = tft.color565(219, 208, 83);
 const uint16_t FLOW_COLOR = tft.color565(99, 105, 209);
-const uint16_t PUMP_COLOR = tft.color565(79, 201, 120);
-const uint16_t TIME_COLOR = tft.color565(238, 99, 82);
 const uint16_t RPM_COLOR = tft.color565(230, 101, 45);
+const uint16_t PUMP_COLOR = tft.color565(79, 201, 120);
 const uint16_t PHASE_COLOR = tft.color565(244, 187, 255);
 const uint16_t BUTTON_COLOR = tft.color565(27, 45, 42);
 const uint16_t BUTTON_OUTLINE_COLOR = tft.color565(247, 247, 255);
@@ -161,7 +163,7 @@ const uint16_t TEXT_COLOR = tft.color565(247, 247, 255);
 const uint16_t GRID_COLOR = tft.color565(72, 72, 72);
 
 // Profile selection and profile button variables
-#define NUMBER_OF_BUTTONS 9
+#define NUMBER_OF_BUTTONS 13
 Adafruit_GFX_Button buttons[NUMBER_OF_BUTTONS];
 #define PROFILES_NAV 0
 #define SETTINGS_NAV 1
@@ -170,16 +172,20 @@ Adafruit_GFX_Button NavButtons[3];
 Adafruit_GFX_Button UpDown[2];
 #define EMP 0
 #define THREE69 1
-#define SLAYER6 2
-#define SLAYER9 3
-#define WEPRO2 4
-#define WEPRO3 5
-#define LEVAX 6
-#define FLAT6 7
-#define SELECT 8
+#define EXDOS 2
+#define FLATSIX 3
+#define SLAYER6 4
+#define WEPRO1 5
+#define FLATNINE 6
+#define SLAYER9 7
+#define WEPRO3 8
+#define LEVAX 9
+#define TURBO 10
+#define SPROOVER 11
+#define SELECT 12
 int selectedProfile = EMP;
 int lastSelectedProfile = EMP;
-const int NumberOfProfiles = 8;
+const int NumberOfProfiles = 12;
 int lastPaddleState = -1;
 enum ProfileMode {
   Interactive,
@@ -213,18 +219,22 @@ struct ProfileType {
 
   ProfileMode mode;
   std::vector<ProfilePhase> profilePhases;
-  int currentProfilePhase; // = 0;
-  ProfileState profileState; // = Stopped;
+  int currentProfilePhase;    // = 0;
+  ProfileState profileState;  // = Stopped;
 };
 ProfileType Profiles[NumberOfProfiles] = {
-  { "EMP", 40, 30, 76, 56, Manual, { { " Manual", 0.0, 0.0, 0.0, 0, 0, false, false, false, false, false } } },
-  { "3-6-9", 120, 30, 76, 56, Interactive, { { "3 Bar", 3.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "6 Bar", 6.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "9 Bar", 9.0, 0.0, 0.0, 0, 0, false, false, false, false, true } } },
-  { "Slayer 6", 40, 90, 76, 56, Interactive, { { "  PI  ", 3.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "6 Bar", 6.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "6 Bar", 6.0, 0.0, 0.0, 0, 0, false, false, false, false, true } } },
-  { "Slayer 9", 120, 90, 76, 56, Interactive, { { "  PI  ", 3.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "9 Bar", 9.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "9 Bar", 9.0, 0.0, 0.0, 0, 0, false, false, false, false, true } } },
-  { "WE Pro 2:1", 40, 150, 76, 56, Automatic, { { "Start", 2.5, 0, 40.0, 2, 0, false, false, true, true, false }, { "PI 1/2", 4.5, 0.0, 40.0, 12, 6, false, false, true, true, false }, { "PI 2/2", 2.5, 0.0, 40.0, 15, 10, false, false, true, true, false }, { "9 Bar", 8, 0.0, 40.0, 15, 3, false, false, true, true, false }, { "Decrease", 6.5, 0.0, 40.0, 15, 15, false, false, true, true, false }, { " Hold ", 6.5, 0.0, 40.0, 30, 30, false, false, true, true, false } } },
-  { "WE Pro 3:1", 120, 150, 76, 56, Automatic, { { "Start", 2.5, 0, 50.0, 2, 0, false, false, true, true, false }, { "PI 1/2", 4.5, 0.0, 50.0, 12, 6, false, false, true, true, false }, { "PI 2/2", 2.5, 0.0, 50.0, 15, 10, false, false, true, true, false }, { "9 Bar", 8, 0.0, 50.0, 15, 3, false, false, true, true, false }, { "Decrease", 6.5, 0.0, 50.0, 15, 15, false, false, true, true, false }, { " Hold ", 6.5, 0.0, 50.0, 30, 30, false, false, true, true, false } } },
-  { "Leva X", 40, 210, 76, 56, Automatic, { { "PI", 3.0, 0.0, 0.0, 10, 1, false, false, true, false, false }, { "Ramp", 9.0, 0.0, 0.0, 2, 1, true, false, true, false, false }, { "Decrease", 4.0, 0.0, 0.0, 40, 40, false, false, true, false, false }, { "Finishing", 4.0, 0.0, 0.0, 8, 3, false, false, true, false, false } } },
-  { "Flat 6", 120, 210, 76, 56, Automatic, { { "PI", 3.0, 0.0, 0.0, 15, 1, false, false, true, false, false }, { "Ramp", 6.0, 0.0, 0.0, 3, 0, false, false, true, false, false }, { "6 Bar", 6.0, 0.0, 0.0, 42, 0, false, false, true, false, false } } },
+  { "EMP", 50, 40, 96, 76, Manual, { { " Manual", 0.0, 0.0, 0.0, 0, 0, false, false, false, false, false } } },
+  { "3-6-9", 150, 40, 96, 76, Interactive, { { "3 Bar", 3.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "6 Bar", 6.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "9 Bar", 9.0, 0.0, 0.0, 0, 0, false, false, false, false, true } } },
+  { "ExDos!",250, 40, 96, 76, Automatic, { { "PI", 3.0, 0.0, 0.0, 15, 1, false, false, true, false, false }, { "Ramp", 6.0, 0.0, 0.0, 3, 0, false, false, true, false, false }, { "6 Bar", 6.0, 0.0, 0.0, 42, 0, false, false, true, false, false } } },
+  { "Flat 6", 50, 120, 96, 76, Automatic, { { "PI", 3.0, 0.0, 0.0, 15, 1, false, false, true, false, false }, { "Ramp", 6.0, 0.0, 0.0, 3, 0, false, false, true, false, false }, { "6 Bar", 6.0, 0.0, 0.0, 42, 0, false, false, true, false, false } } },
+  { "Slayer 6", 150, 120, 96, 76, Interactive, { { "  PI  ", 3.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "6 Bar", 6.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "6 Bar", 6.0, 0.0, 0.0, 0, 0, false, false, false, false, true } } },
+  { "WE Pro 2:1", 250, 120, 96, 76, Automatic, { { "Start", 2.5, 0, 40.0, 2, 0, false, false, true, true, false }, { "PI 1/2", 4.5, 0.0, 40.0, 12, 6, false, false, true, true, false }, { "PI 2/2", 2.5, 0.0, 40.0, 15, 10, false, false, true, true, false }, { "9 Bar", 8, 0.0, 40.0, 15, 3, false, false, true, true, false }, { "Decrease", 6.5, 0.0, 40.0, 15, 15, false, false, true, true, false }, { " Hold ", 6.5, 0.0, 40.0, 30, 30, false, false, true, true, false } } },
+  { "Flat 9", 50, 200, 96, 76, Automatic, { { "PI", 3.0, 0.0, 0.0, 15, 1, false, false, true, false, false }, { "Ramp", 9.0, 0.0, 0.0, 3, 0, false, false, true, false, false }, { "9 Bar", 9.0, 0.0, 0.0, 42, 0, false, false, true, false, false } } },
+  { "Slayer 9", 150, 200, 96, 76, Interactive, { { "  PI  ", 3.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "9 Bar", 9.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "9 Bar", 9.0, 0.0, 0.0, 0, 0, false, false, false, false, true } } },
+  { "WE Pro 3:1", 250, 200, 96, 76, Automatic, { { "Start", 2.5, 0, 50.0, 2, 0, false, false, true, true, false }, { "PI 1/2", 4.5, 0.0, 50.0, 12, 6, false, false, true, true, false }, { "PI 2/2", 2.5, 0.0, 50.0, 15, 10, false, false, true, true, false }, { "9 Bar", 8, 0.0, 50.0, 15, 3, false, false, true, true, false }, { "Decrease", 6.5, 0.0, 50.0, 15, 15, false, false, true, true, false }, { " Hold ", 6.5, 0.0, 50.0, 30, 30, false, false, true, true, false } } },
+  { "Leva X", 50, 280, 96, 76, Automatic, { { "PI", 3.0, 0.0, 0.0, 10, 1, false, false, true, false, false }, { "Ramp", 9.0, 0.0, 0.0, 2, 1, true, false, true, false, false }, { "Decrease", 4.0, 0.0, 0.0, 40, 40, false, false, true, false, false }, { "Finishing", 4.0, 0.0, 0.0, 8, 3, false, false, true, false, false } } },
+  { "Turbo", 150, 280, 96, 76, Automatic, { { "PI", 3.0, 0.0, 0.0, 15, 1, false, false, true, false, false }, { "Ramp", 6.0, 0.0, 0.0, 3, 0, false, false, true, false, false }, { "6 Bar", 6.0, 0.0, 0.0, 42, 0, false, false, true, false, false } } },
+  { "Spro Over", 250, 280, 96, 76, Automatic, { { "PI", 3.0, 0.0, 0.0, 15, 1, false, false, true, false, false }, { "Ramp", 6.0, 0.0, 0.0, 3, 0, false, false, true, false, false }, { "6 Bar", 6.0, 0.0, 0.0, 42, 0, false, false, true, false, false } } },
 };
 
 // converting target pressure into a DAC value for the profiles... the "pressures" current set in the profiles above won't go off of read pressure, but rather target pressure
@@ -318,20 +328,20 @@ int getPaddleState() {
 // Phase name printout while profiling a shot
 void PrintPhase() {
   ProfileType profile = Profiles[selectedProfile];
-  tft.setTextSize(2);
+  tft.setTextSize(3);
   if (profile.currentProfilePhase > 0 && profile.mode) {
-    tft.setCursor(getCenteredX(profile.profilePhases[profile.currentProfilePhase - 1].name), 30);
+    tft.setCursor(getCenteredX(profile.profilePhases[profile.currentProfilePhase - 1].name), 40);
     tft.setTextColor(BACKGROUND_COLOR, BACKGROUND_COLOR);
     tft.println(profile.profilePhases[profile.currentProfilePhase - 1].name);
 
-    tft.setCursor(getCenteredX(profile.profilePhases[profile.currentProfilePhase].name), 30);
+    tft.setCursor(getCenteredX(profile.profilePhases[profile.currentProfilePhase].name), 40);
     tft.setTextColor(PHASE_COLOR, BACKGROUND_COLOR);
     tft.println(profile.profilePhases[profile.currentProfilePhase].name);
   } else {
-    tft.setCursor(getCenteredX("            "), 30);
+    tft.setCursor(getCenteredX("            "), 40);
     tft.setTextColor(BACKGROUND_COLOR, BACKGROUND_COLOR);
     tft.println("            ");
-    tft.setCursor(getCenteredX(profile.profilePhases[profile.currentProfilePhase].name), 30);
+    tft.setCursor(getCenteredX(profile.profilePhases[profile.currentProfilePhase].name), 40);
     tft.setTextColor(PHASE_COLOR, BACKGROUND_COLOR);
     tft.println(profile.profilePhases[profile.currentProfilePhase].name);
   }
@@ -355,11 +365,11 @@ void setNextProfilePhase() {
 
   if (profile.mode != Manual) {
     tft.setTextSize(1);
-    tft.drawFastVLine(presX, 120, 8, PHASE_COLOR);
-    tft.drawFastVLine(presX - 1, 120, 6, PHASE_COLOR);
-    tft.drawFastVLine(presX + 1, 120, 6, PHASE_COLOR);
-    tft.drawFastVLine(presX - 2, 120, 4, PHASE_COLOR);
-    tft.drawFastVLine(presX + 2, 120, 4, PHASE_COLOR);
+    tft.drawFastVLine(presX, 150, 8, PHASE_COLOR);
+    tft.drawFastVLine(presX - 1, 150, 6, PHASE_COLOR);
+    tft.drawFastVLine(presX + 1, 150, 6, PHASE_COLOR);
+    tft.drawFastVLine(presX - 2, 150, 4, PHASE_COLOR);
+    tft.drawFastVLine(presX + 2, 150, 4, PHASE_COLOR);
   }
 
 
@@ -457,7 +467,7 @@ void DrawSettingsScreen() {
 
 uint16_t cacluateRainbow(int progress) {
   int colorCount = 7;
-  float colorInterval = 100 / (colorCount - 1);
+  float colorInterval = 260 / (colorCount - 1);
   float segment = progress / colorInterval;
 
   int r, g, b;
@@ -499,9 +509,9 @@ void DrawBootScreen() {
   ClearScreen();
   tft.setTextColor(PUMP_COLOR, BACKGROUND_COLOR);
   tft.setTextSize(3);
-  tft.setCursor(getCenteredX("Witt's End Coffee"), 100);
-  tft.print("Witt's End Coffee");
-  for (int progress = 1; progress < 100; progress++) {
+  tft.setCursor(getCenteredX("Witt's End Coffee Co."), 100);
+  tft.print("Witt's End Coffee Co.");
+  for (int progress = 1; progress < 260; progress++) {
     delayMicroseconds(4000);
     tft.drawRect(110, 180, progress, 10, cacluateRainbow(progress));
   }
@@ -521,171 +531,175 @@ void DrawNavButtons() {
 }
 void PrintSelectedProfile() {
   tft.setTextColor(TEXT_COLOR, BACKGROUND_COLOR);
-  tft.setTextSize(2);
+  tft.setTextSize(3);
   tft.setCursor(getCenteredX(Profiles[selectedProfile].name), 5);
   tft.print(Profiles[selectedProfile].name);
 }
 void DrawPlot() {
   DrawNavButtons();
   PrintSelectedProfile();
-  tft.drawLine(22, 117, 22, 220, TEXT_COLOR);  // plot border... 3x pixel wide, thicker lines
-  tft.drawLine(23, 117, 23, 220, TEXT_COLOR);
-  tft.drawLine(24, 117, 24, 220, TEXT_COLOR);
-  tft.drawLine(22, 219, 298, 219, TEXT_COLOR);
-  tft.drawLine(22, 220, 298, 220, TEXT_COLOR);
-  tft.drawLine(22, 221, 298, 221, TEXT_COLOR);
-  tft.drawLine(296, 117, 296, 220, TEXT_COLOR);
-  tft.drawLine(297, 117, 297, 220, TEXT_COLOR);
-  tft.drawLine(298, 117, 298, 220, TEXT_COLOR);
+  tft.drawLine(27, 150, 27, 300, TEXT_COLOR);  // plot border... 3x pixel wide, thicker lines
+  tft.drawLine(28, 150, 28, 300, TEXT_COLOR);
+  tft.drawLine(29, 150, 29, 300, TEXT_COLOR);
+  tft.drawLine(27, 299, 453, 299, TEXT_COLOR);
+  tft.drawLine(27, 300, 453, 300, TEXT_COLOR);
+  tft.drawLine(27, 301, 453, 301, TEXT_COLOR);
+  tft.drawLine(451, 150, 451, 300, TEXT_COLOR);
+  tft.drawLine(452, 150, 452, 300, TEXT_COLOR);
+  tft.drawLine(453, 150, 453, 300, TEXT_COLOR);
 
-  tft.setTextColor(TEXT_COLOR, BACKGROUND_COLOR);  //X axis scale - time (sec)
+  tft.drawLine(30, 150, 450, 150, GRID_COLOR);  // Horizontal lines for pressure/flow grid
+  tft.drawLine(30, 165, 450, 165, GRID_COLOR);
+  tft.drawLine(30, 180, 450, 180, GRID_COLOR);
+  tft.drawLine(30, 195, 450, 195, GRID_COLOR);
+  tft.drawLine(30, 210, 450, 210, GRID_COLOR);
+  tft.drawLine(30, 225, 450, 225, GRID_COLOR);
+  tft.drawLine(30, 240, 450, 240, GRID_COLOR);
+  tft.drawLine(30, 255, 450, 255, GRID_COLOR);
+  tft.drawLine(30, 270, 450, 270, GRID_COLOR);
+  tft.drawLine(30, 285, 450, 285, GRID_COLOR);
+
+  tft.drawLine(82, 150, 82, 298, GRID_COLOR);  // vertical lines for pressure/flow grid
+  tft.drawLine(128, 150, 128, 298, GRID_COLOR);
+  tft.drawLine(174, 150, 174, 298, GRID_COLOR);
+  tft.drawLine(220, 150, 220, 298, GRID_COLOR);
+  tft.drawLine(266, 150, 266, 298, GRID_COLOR);
+  tft.drawLine(312, 150, 312, 298, GRID_COLOR);
+  tft.drawLine(358, 150, 358, 298, GRID_COLOR);
+  tft.drawLine(404, 150, 404, 298, GRID_COLOR);
+
+
+  tft.setTextColor(TEXT_COLOR, BACKGROUND_COLOR);  // X axis scale - time (sec)
   tft.setTextSize(1);
-  tft.setCursor(23, 225);
+  tft.setCursor(25, 305);
   tft.print("0");
-  tft.setCursor(50, 225);
+  tft.setCursor(77, 305);
   tft.print("10");
-  tft.setCursor(80, 225);
+  tft.setCursor(123, 305);
   tft.print("20");
-  tft.setCursor(110, 225);
+  tft.setCursor(169, 305);
   tft.print("30");
-  tft.setCursor(140, 225);
+  tft.setCursor(215, 305);
   tft.print("40");
-  tft.setCursor(170, 225);
+  tft.setCursor(261, 305);
   tft.print("50");
-  tft.setCursor(200, 225);
+  tft.setCursor(307, 305);
   tft.print("60");
-  tft.setCursor(230, 225);
+  tft.setCursor(353, 305);
   tft.print("70");
-  tft.setCursor(260, 225);
+  tft.setCursor(399, 305);
   tft.print("80");
-  tft.setCursor(290, 225);
+  tft.setCursor(445, 305);
   tft.print("90");
 
-  tft.drawLine(15, 130, 25, 130, TEXT_COLOR);   // Longer dash for 9 bar indicator
-  tft.drawLine(25, 120, 295, 120, GRID_COLOR);  // Horizontal lines for pressure/flow grid
-  tft.drawLine(25, 130, 295, 130, GRID_COLOR);
-  tft.drawLine(25, 140, 295, 140, GRID_COLOR);
-  tft.drawLine(25, 150, 295, 150, GRID_COLOR);
-  tft.drawLine(25, 160, 295, 160, GRID_COLOR);
-  tft.drawLine(25, 170, 295, 170, GRID_COLOR);
-  tft.drawLine(25, 180, 295, 180, GRID_COLOR);
-  tft.drawLine(25, 190, 295, 190, GRID_COLOR);
-  tft.drawLine(25, 200, 295, 200, GRID_COLOR);
-  tft.drawLine(25, 210, 295, 210, GRID_COLOR);
-  tft.drawLine(55, 118, 55, 219, GRID_COLOR);  // vertical lines for pressure/flow grid
-  tft.drawLine(85, 118, 85, 219, GRID_COLOR);
-  tft.drawLine(115, 118, 115, 219, GRID_COLOR);
-  tft.drawLine(145, 118, 145, 219, GRID_COLOR);
-  tft.drawLine(175, 118, 175, 219, GRID_COLOR);
-  tft.drawLine(205, 118, 205, 219, GRID_COLOR);
-  tft.drawLine(235, 118, 235, 219, GRID_COLOR);
-  tft.drawLine(265, 118, 265, 219, GRID_COLOR);
-
-  tft.drawLine(15, 120, 21, 120, TEXT_COLOR);  // Unit indicator dashes for pressure side
+  // Y axis unit indicator dashes for pressure side
   tft.setTextColor(PRESSURE_COLOR, BACKGROUND_COLOR);
+  tft.drawLine(20, 150, 30, 150, TEXT_COLOR);
   tft.setTextSize(1);
-  tft.setCursor(3, 117);
+  tft.setCursor(3, 147);
   tft.print("10");
-  tft.drawLine(15, 130, 21, 130, TEXT_COLOR);
-  tft.setCursor(8, 127);
+  tft.drawLine(20, 165, 30, 165, TEXT_COLOR);
+  tft.setCursor(8, 162);
   tft.print("9");
-  tft.drawLine(15, 140, 21, 140, TEXT_COLOR);
-  tft.setCursor(8, 137);
-  tft.print("8");
-  tft.drawLine(15, 150, 21, 150, TEXT_COLOR);
-  tft.setCursor(8, 147);
-  tft.print("7");
-  tft.drawLine(15, 160, 21, 160, TEXT_COLOR);
-  tft.setCursor(8, 157);
-  tft.print("6");
-  tft.drawLine(15, 170, 21, 170, TEXT_COLOR);
-  tft.setCursor(8, 167);
-  tft.print("5");
-  tft.drawLine(15, 180, 21, 180, TEXT_COLOR);
+  tft.drawLine(20, 180, 30, 180, TEXT_COLOR);
   tft.setCursor(8, 177);
-  tft.print("4");
-  tft.drawLine(15, 190, 21, 190, TEXT_COLOR);
-  tft.setCursor(8, 187);
-  tft.print("3");
-  tft.drawLine(15, 200, 21, 200, TEXT_COLOR);
-  tft.setCursor(8, 197);
-  tft.print("2");
-  tft.drawLine(15, 210, 21, 210, TEXT_COLOR);
+  tft.print("8");
+  tft.drawLine(20, 195, 30, 195, TEXT_COLOR);
+  tft.setCursor(8, 192);
+  tft.print("7");
+  tft.drawLine(20, 210, 30, 210, TEXT_COLOR);
   tft.setCursor(8, 207);
+  tft.print("6");
+  tft.drawLine(20, 225, 30, 225, TEXT_COLOR);
+  tft.setCursor(8, 222);
+  tft.print("5");
+  tft.drawLine(20, 240, 30, 240, TEXT_COLOR);
+  tft.setCursor(8, 237);
+  tft.print("4");
+  tft.drawLine(20, 255, 30, 255, TEXT_COLOR);
+  tft.setCursor(8, 252);
+  tft.print("3");
+  tft.drawLine(20, 270, 30, 270, TEXT_COLOR);
+  tft.setCursor(8, 267);
+  tft.print("2");
+  tft.drawLine(20, 285, 30, 285, TEXT_COLOR);
+  tft.setCursor(8, 282);
   tft.print("1");
-  tft.drawLine(15, 220, 21, 220, TEXT_COLOR);
-  tft.setCursor(8, 217);
+  tft.drawLine(20, 300, 30, 300, TEXT_COLOR);
+  tft.setCursor(8, 297);
   tft.print("0");
 
-  tft.drawLine(299, 120, 305, 120, TEXT_COLOR);  // Unit indicator dashes and Y axis scale for weight
-  tft.setTextColor(PUMP_COLOR, BACKGROUND_COLOR);
+  tft.setTextColor(PUMP_COLOR, BACKGROUND_COLOR);  // Y axis unit indicator dashes and scale for weight side
   tft.setTextSize(1);
-  tft.setCursor(306, 121);
+  tft.drawLine(450, 150, 460, 150, TEXT_COLOR);
+  tft.setCursor(465, 155);
   tft.print("50");
-  tft.drawLine(299, 140, 305, 140, TEXT_COLOR);
-  tft.setCursor(306, 141);
+  tft.drawLine(450, 180, 460, 180, TEXT_COLOR);
+  tft.setCursor(465, 185);
   tft.print("40");
-  tft.drawLine(299, 160, 305, 160, TEXT_COLOR);
-  tft.setCursor(306, 161);
+  tft.drawLine(450, 210, 460, 210, TEXT_COLOR);
+  tft.setCursor(465, 215);
   tft.print("30");
-  tft.drawLine(299, 180, 305, 180, TEXT_COLOR);
-  tft.setCursor(306, 181);
+  tft.drawLine(450, 240, 460, 240, TEXT_COLOR);
+  tft.setCursor(465, 245);
   tft.print("20");
-  tft.drawLine(299, 200, 305, 200, TEXT_COLOR);
-  tft.setCursor(306, 201);
+  tft.drawLine(450, 270, 460, 270, TEXT_COLOR);
+  tft.setCursor(465, 275);
   tft.print("10");
-  tft.drawLine(299, 220, 305, 220, TEXT_COLOR);
+  tft.drawLine(450, 300, 460, 300, TEXT_COLOR);
 
   tft.setTextColor(FLOW_COLOR, BACKGROUND_COLOR);  //Y axis scale for flow
-  tft.setCursor(306, 112);
-  tft.print("10");
-  tft.setCursor(309, 132);
-  tft.print("8");
-  tft.setCursor(309, 152);
-  tft.print("6");
-  tft.setCursor(309, 172);
+  tft.setCursor(470, 142);
+  tft.print("5");
+  tft.setCursor(470, 172);
   tft.print("4");
-  tft.setCursor(309, 192);
+  tft.setCursor(470, 202);
+  tft.print("3");
+  tft.setCursor(470, 232);
   tft.print("2");
-  tft.setTextColor(TEXT_COLOR, BACKGROUND_COLOR);
-  tft.setCursor(308, 217);
+  tft.setCursor(470, 262);
+  tft.print("1");
+  tft.setCursor(470, 295);
   tft.print("0");
 
   // tft.drawRoundRect(8, 55, 64, 50, 4, TIME_COLOR);
-  tft.setTextSize(1);
+  tft.setTextSize(2);
   tft.setTextColor(TIME_COLOR, BACKGROUND_COLOR);
-  tft.setCursor(5, 55);
+  tft.setCursor(10, 75);
   tft.print("Time: ");
-  tft.setCursor(8, 90);
+  tft.setCursor(16, 120);
   tft.print("sec");
   tft.setTextColor(PRESSURE_COLOR, BACKGROUND_COLOR);
-  tft.setCursor(50, 55);
+  tft.setCursor(85, 75);
   tft.print("Pressure: ");
-  tft.setCursor(65, 90);
+  tft.setCursor(110, 120);
   tft.print("Bar");
   tft.setTextSize(1);
-  tft.setCursor(30, 110);
-  tft.print("Pres.");
+  tft.setCursor(40, 140);
+  tft.print("Pressure");
+  tft.setTextSize(2);
   tft.setTextColor(FLOW_COLOR, BACKGROUND_COLOR);
-  tft.setCursor(138, 55);
+  tft.setCursor(220, 75);
   tft.print("Flow: ");
-  tft.setCursor(138, 90);
+  tft.setCursor(220, 120);
   tft.print("mL/s");
-  tft.setCursor(235, 110);
-  tft.print("Flo /");
+  tft.setTextSize(1);
+  tft.setCursor(370, 140);
+  tft.print("Flow /");
+  tft.setTextSize(2);
+  tft.setTextColor(RPM_COLOR, BACKGROUND_COLOR);
+  tft.setCursor(315, 75);
+  tft.print("Pump: ");
+  tft.setCursor(315, 120);
+  tft.print("mL/s");
   tft.setTextColor(PUMP_COLOR, BACKGROUND_COLOR);
-  tft.setCursor(200, 55);
+  tft.setCursor(395, 75);
   tft.print("Weight: ");
-  tft.setCursor(205, 90);
+  tft.setCursor(395, 120);
   tft.print("grams");
   tft.setTextSize(1);
-  tft.setCursor(275, 110);
-  tft.print("Wt.");
-  tft.setTextColor(RPM_COLOR, BACKGROUND_COLOR);
-  tft.setCursor(280, 55);
-  tft.print("Pump: ");
-  tft.setCursor(280, 90);
-  tft.print("mL/s");
+  tft.setCursor(415, 140);
+  tft.print("Weight");
 }
 void DrawProfiles() {
   for (uint8_t i = 0; i < NumberOfProfiles + 1; i++) {
@@ -696,6 +710,11 @@ void DrawProfiles() {
       buttons[i].drawButton(false);
     }
   }
+  tft.setTextSize(3);
+  tft.setCursor(320, 20);
+  tft.print("Profiles");
+  tft.drawLine(320, 46, 460, 46, TEXT_COLOR);
+  tft.drawLine(320, 47, 460, 47, TEXT_COLOR);
 }
 void InitButtons() {
   for (uint8_t i = 0; i < NumberOfProfiles; i++) {
@@ -705,19 +724,19 @@ void InitButtons() {
 
                           BUTTON_COLOR, TEXT_COLOR, Profiles[i].name, 1);
   }
-  buttons[SELECT].initButton(&tft, 240, 210, 150, 50, BUTTON_OUTLINE_COLOR,
+  buttons[SELECT].initButton(&tft, 390, 280, 176, 76, BUTTON_OUTLINE_COLOR,
 
                              BUTTON_COLOR, TEXT_COLOR, "Select", 1);
 
-  NavButtons[PROFILES_NAV].initButton(&tft, 35, 25, 60, 40, BUTTON_OUTLINE_COLOR,
+  NavButtons[PROFILES_NAV].initButton(&tft, 45, 35, 80, 60, BUTTON_OUTLINE_COLOR,
 
                                       BUTTON_COLOR, TEXT_COLOR, "Profiles", 1);
 
-  NavButtons[SETTINGS_NAV].initButton(&tft, 290, 25, 60, 40, BUTTON_OUTLINE_COLOR,
+  NavButtons[SETTINGS_NAV].initButton(&tft, 435, 35, 80, 60, BUTTON_OUTLINE_COLOR,
 
                                       BUTTON_COLOR, TEXT_COLOR, "Settings", 1);
 
-  NavButtons[HOME_NAV].initButton(&tft, 35, 25, 60, 40, BUTTON_OUTLINE_COLOR,
+  NavButtons[HOME_NAV].initButton(&tft, 45, 35, 80, 60, BUTTON_OUTLINE_COLOR,
 
                                   BUTTON_COLOR, TEXT_COLOR, "Home", 1);
   UpDown[0].initButton(&tft, 225, 115, 25, 25, BUTTON_OUTLINE_COLOR, BUTTON_COLOR, TEXT_COLOR, "+", 1);
@@ -725,7 +744,7 @@ void InitButtons() {
 }
 int UpdateManual() {
   potentiometer = analogRead(POTENTIOMETERPIN);
-  Serial.println(potentiometer);
+  //Serial.println(potentiometer);
   if (potentiometer >= 1750) {
     return (-0.25 * potentiometer) + 580;
   } else {
@@ -844,13 +863,13 @@ void Pulse_Event_PT()  // Pump Tachometer interrupt function
   }
 }
 void UpdatePlot() {
-  // NOT being connected to the Lunar slowed the Uno down, so I broke this out... doesn't seem to make a difference with Nano ESP32 but leaving it in case.
-  // Future upgrade may be to tell the Arduino not to search for the Lunar if it isn't connected and a shot starts?
+  // NOT being connected to the Lunar slowed the Uno R4 down, so I broke this out... but it doesn't seem to make a difference with Nano ESP32 but leaving it in case.
+  // Future upgrade may be to tell the Arduino to stop searching for the Lunar if it isn't connected and a shot starts?
   // In addition to that, I think the plot should be changed to plot every so often, rather than EVERY time through the loop?
   if (lunar.connected()) {
-    plotStep = 0.24;
+    plotStep = 0.48;
   } else {
-    plotStep = 0.24;
+    plotStep = 0.48;
   }
 
   //Plot Pressure
@@ -984,52 +1003,71 @@ void HandleTouchOnProfiles() {
   }
 }
 bool CheckButtonPress() {
-  if (!ts.touched() || timerRunning) {
+  if (!ctp.touched() || timerRunning) {
     return false;
   }
-  TS_Point p = ts.getPoint();
-  // rotate coordinate system
-  // flip it around to match the screen.
-  p.x = map(p.x, 0, 240, 0, 240);
-  p.y = map(p.y, 0, 320, 0, 320);
-  LastXTouched = p.y;
-  LastYTouched = tft.height() - p.x;
-  // tft.drawPixel(LastXTouched, LastYTouched, tft.color565(50,205,50)); //uncomment if you need to see where you're touching
+
+  // Retrieve the points, up to 5!
+  TS_Point ps[FT5336_MAXTOUCHES];
+  ctp.getPoints(ps, FT5336_MAXTOUCHES);
+
+  for (int j = 0; j < FT5336_MAXTOUCHES; j++) {
+    // Check if z (pressure) is zero, skip if so
+    if (ps[j].z == 0) continue;
+    
+    ps[j].x = map(ps[j].x, 0, 320, 0, 320);
+    ps[j].y = map(ps[j].y, 0, 480, 480, 0);
+    
+    // Print out the remapped/rotated coordinates
+    Serial.print("(");
+    Serial.print(ps[j].x);
+    Serial.print(", ");
+    Serial.print(ps[j].y);
+    Serial.print(")\t");
+  }
+
+
+  LastXTouched = ps[0].y;
+  LastYTouched = ps[0].x;                                                  //used to say "tft.height() - ps[i].x"
+  //tft.drawPixel(LastXTouched, LastYTouched, tft.color565(50, 205, 50));  //uncomment if you need to see what x/y you're touching
+  Serial.println(ps[0].x, ps[0].y);
+  Serial.println(LastXTouched, LastYTouched);
   return true;
 }
+
 void UpdateShotTimer() {
   tft.setTextColor(TIME_COLOR, BACKGROUND_COLOR);
   tft.setTextSize(3);
-  tft.setCursor(1, 65);
+  tft.setCursor(10, 95);
   tft.print(shotTimer);
   if (shotTimer <= 9) {
-  tft.print(" ");
+    tft.print(" ");
   }
 }
 void UpdatePressure() {
   vPres = (float)analogRead(PRESSUREPIN);
-  readPressure = ((((vPres / 4095) - 0.1) * 200 / 0.8) * 0.0689476) + 0.5; //added 0.5 to match machine pressure guage, but not sure if it's more or less accurate?
+  readPressure = ((((vPres / 4095) - 0.1) * 200 / 0.8) * 0.0689476) + 0.5;  //added 0.5 to calibrate/match OEM machine pressure guage, but not sure if it's more or less accurate?
   // presPlot = readPressure;
-  presPlot = map(readPressure * 100, 0.0 * 100, 10 * 100, 218, 118);
+  presPlot = map(readPressure * 100, 0.0 * 100, 10 * 100, 300, 148);
   tft.setTextSize(3);
   tft.setTextColor(PRESSURE_COLOR, BACKGROUND_COLOR);
-  tft.setCursor(48, 65);
+  tft.setCursor(100, 95);
   tft.print(abs(readPressure), 1);
   if (readPressure <= 9.9) {
-  tft.print(" ");
+    tft.print(" ");
   }
 }
 
 void UpdateLunar() {
   readLunar = constrain(lunar.weight, 0, 99.9);
-  LunarPlot = map(readLunar, 0.0, 50.0, 218, 118);
-  LunarPlot = constrain(LunarPlot, 118, 218);
+  LunarPlot = map(readLunar, 0.0, 50.0, 298, 152);
+  LunarPlot = constrain(LunarPlot, 152, 298);
   tft.setTextSize(3);
-  tft.setCursor(200, 65);
+  tft.setCursor(405, 95);
   tft.setTextColor(PUMP_COLOR, BACKGROUND_COLOR);
   tft.print(abs(readLunar), 1);
   if (readLunar <= 9.9) {
-  tft.print(" ");
+    tft.print(" ");
   }
 }
 
@@ -1067,14 +1105,14 @@ void UpdateFlowMeter() {
   average_FM = total_FM / numReadings_FM;
   flowRate_FM = average_FM / 60.0;
   flowRate_FM_Display = constrain(flowRate_FM, 0.0, 10.0);
-  flowPlot_FM = map(flowRate_FM * 100, 0.0 * 100, 10.0 * 100, 218, 118);
-  flowPlot_FM = constrain(flowPlot_FM, 118, 218);
+  flowPlot_FM = map(flowRate_FM * 100, 0.0 * 100, 5.0 * 100, 298, 152);
+  flowPlot_FM = constrain(flowPlot_FM, 152, 298);
   tft.setTextSize(3);
-  tft.setCursor(123, 65);
+  tft.setCursor(215, 95);
   tft.setTextColor(FLOW_COLOR, BACKGROUND_COLOR);
   tft.print(flowRate_FM_Display, 1);
   if (flowRate_FM_Display <= 9.9) {
-  tft.print(" ");
+    tft.print(" ");
   }
 }
 void UpdatePumpTach() {
@@ -1084,10 +1122,7 @@ void UpdatePumpTach() {
     LastTimeCycleMeasure_PT = CurrentMicros_PT;
   }
   FrequencyRaw_PT = 10000000000 / PeriodAverage_PT;  // Calculate the frequency using the period
-  if (PeriodBetweenPulses_PT > ZeroTimeout_PT - ZeroDebouncingExtra_PT || CurrentMicros_PT -
-                                                                              LastTimeCycleMeasure_PT
-                                                                            > ZeroTimeout_PT - ZeroDebouncingExtra_PT)
-  {
+  if (PeriodBetweenPulses_PT > ZeroTimeout_PT - ZeroDebouncingExtra_PT || CurrentMicros_PT - LastTimeCycleMeasure_PT > ZeroTimeout_PT - ZeroDebouncingExtra_PT) {
     FrequencyRaw_PT = 0;            // Set frequency as 0.
     ZeroDebouncingExtra_PT = 2000;  // Change the threshold a little so it doesn't bounce.
   } else {
@@ -1109,14 +1144,14 @@ void UpdatePumpTach() {
   PT_kilo = average_PT / 1000;
   flowRate_PT = average_PT / 60.0 * 0.3;
   duty_PT = average_PT / 50;
-  flowPlot_PT = map(flowRate_PT * 100, 0.0 * 100, 20.0 * 100, 218, 118);
-  flowPlot_PT = constrain(flowPlot_PT, 118, 218);
+  flowPlot_PT = map(flowRate_PT * 100, 0.0 * 100, 20.0 * 100, 298, 152);
+  flowPlot_PT = constrain(flowPlot_PT, 152, 298);
   flowRate_PT = RPM_PT / 60.0 * 0.3;
   tft.setTextSize(3);
-  tft.setCursor(275, 65);
+  tft.setCursor(315, 95);
   tft.setTextColor(RPM_COLOR, BACKGROUND_COLOR);
-  tft.print(flowRate_PT,0);
-  if (flowRate_PT <= 9) { 
+  tft.print(flowRate_PT, 1);
+  if (flowRate_PT <= 9.9) {
     tft.print(" ");
   }
 }
@@ -1127,7 +1162,7 @@ uint16_t getCenteredX(String text) {
   //tft.getTextBounds(&text)
   tft.getTextBounds(text, 0, 0, &x1, &y1, &w, &h);
 
-  return (320 - w) / 2;
+  return (480 - w) / 2;
 }
 
 void (*resetFunc)(void) = 0;
@@ -1174,7 +1209,7 @@ void HandleLunar() {
       if (!lunar_active)
         BLE.scan();
       ble_discover_lunar();
-      Serial.println("Trying to find Lunar...");
+      // Serial.println("Trying to find Lunar...");
     }
   } else {
     Serial.println("BLE Not Active");
@@ -1201,9 +1236,15 @@ void setup() {
   Serial.begin(115200);
 
   timerRunning = false;
-  
+
   tft.begin(2400000);
-  ts.begin(2400000);
+  ctp.begin(2400000);
+  if (!ctp.begin(FT53XX_DEFAULT_ADDR, &Wire)) {  // pass in 'sensitivity' coefficient and I2C bus
+    Serial.println("Couldn't start FT5336 touchscreen controller");
+    while (1) delay(10);
+  }
+
+  Serial.println("Capacitive touchscreen started");
   tft.setRotation(3);
   startTime = millis();
   InitFromPreferences();
@@ -1219,31 +1260,33 @@ void setup() {
   if (BLE.begin()) {
     ble_active = true;
     BLE.scan();
+    Serial.println("Bluetooth started");
   } else {
     Serial.println("Failed to begin BLE");
   }
   DrawHomeScreen();
 }
 void ClearPlot() {
-  tft.fillRect(25, 117, 270, 103, 0x0000);      // clear plot, and then redraw the grid lines below
-  tft.drawLine(25, 120, 295, 120, GRID_COLOR);  // Horizontal lines for pressure/flow grid
-  tft.drawLine(25, 130, 295, 130, GRID_COLOR);
-  tft.drawLine(25, 140, 295, 140, GRID_COLOR);
-  tft.drawLine(25, 150, 295, 150, GRID_COLOR);
-  tft.drawLine(25, 160, 295, 160, GRID_COLOR);
-  tft.drawLine(25, 170, 295, 170, GRID_COLOR);
-  tft.drawLine(25, 180, 295, 180, GRID_COLOR);
-  tft.drawLine(25, 190, 295, 190, GRID_COLOR);
-  tft.drawLine(25, 200, 295, 200, GRID_COLOR);
-  tft.drawLine(25, 210, 295, 210, GRID_COLOR);
-  tft.drawLine(55, 118, 55, 219, GRID_COLOR);  // vertical lines for pressure/flow grid
-  tft.drawLine(85, 118, 85, 219, GRID_COLOR);
-  tft.drawLine(115, 118, 115, 219, GRID_COLOR);
-  tft.drawLine(145, 118, 145, 219, GRID_COLOR);
-  tft.drawLine(175, 118, 175, 219, GRID_COLOR);
-  tft.drawLine(205, 118, 205, 219, GRID_COLOR);
-  tft.drawLine(235, 118, 235, 219, GRID_COLOR);
-  tft.drawLine(265, 118, 265, 219, GRID_COLOR);
+  tft.fillRect(30, 147, 420, 150, 0x0000);      // clear plot, and then redraw the grid lines below
+  tft.drawLine(30, 150, 450, 150, GRID_COLOR);  // Horizontal lines for pressure/flow grid
+  tft.drawLine(30, 165, 450, 165, GRID_COLOR);
+  tft.drawLine(30, 180, 450, 180, GRID_COLOR);
+  tft.drawLine(30, 195, 450, 195, GRID_COLOR);
+  tft.drawLine(30, 210, 450, 210, GRID_COLOR);
+  tft.drawLine(30, 225, 450, 225, GRID_COLOR);
+  tft.drawLine(30, 240, 450, 240, GRID_COLOR);
+  tft.drawLine(30, 255, 450, 255, GRID_COLOR);
+  tft.drawLine(30, 270, 450, 270, GRID_COLOR);
+  tft.drawLine(30, 285, 450, 285, GRID_COLOR);
+  tft.drawLine(82, 150, 82, 298, GRID_COLOR);  // vertical lines for pressure/flow grid
+  tft.drawLine(128, 150, 128, 298, GRID_COLOR);
+  tft.drawLine(174, 150, 174, 298, GRID_COLOR);
+  tft.drawLine(220, 150, 220, 298, GRID_COLOR);
+  tft.drawLine(266, 150, 266, 298, GRID_COLOR);
+  tft.drawLine(312, 150, 312, 298, GRID_COLOR);
+  tft.drawLine(358, 150, 358, 298, GRID_COLOR);
+  tft.drawLine(404, 150, 404, 298, GRID_COLOR);
+
   // Clear Profile phase
   tft.setTextSize(2);
   tft.setCursor(110, 35);
@@ -1259,16 +1302,16 @@ void CheckAutoFill() {
         analogWrite(AUTOFILLSPEEDPIN, autofillSpeed);
       }
       if (SelectedScreen == HOME) {
-        tft.setTextSize(2);
-        tft.setCursor(getCenteredX("Autofill"), 30);
+        tft.setTextSize(3);
+        tft.setCursor(getCenteredX("Autofill"), 40);
         tft.setTextColor(TIME_COLOR, BACKGROUND_COLOR);
         tft.print("Autofill");
       }
     } else {
       autofillSpeed = 0;
       analogWrite(AUTOFILLSPEEDPIN, autofillSpeed);
-      tft.setTextSize(2);
-      tft.setCursor(getCenteredX("           "), 30);
+      tft.setTextSize(3);
+      tft.setCursor(getCenteredX("           "), 40);
       tft.setTextColor(TEXT_COLOR, BACKGROUND_COLOR);
       if (SelectedScreen == HOME) {
         tft.print("           ");
@@ -1313,13 +1356,13 @@ void UpdateSettings() {
 void MakeCoffee() {
   if (digitalRead(SWITCHPIN) == HIGH) {
     digitalWrite(BREWSOLENOIDPIN, LOW);
-    Serial.println("Switch is off");
+    //Serial.println("Switch is off");
     CheckAutoFill();
     pumpDACValue = 0;
     analogWrite(BREWSPEEDPIN, pumpDACValue);
     if (weightStopper = true) {
       weightStopper = false;
-      Serial.println("weightStopper FALSE Line 1262");
+      // Serial.println("weightStopper FALSE Line 1262");
     }
     if (timerRunning == true) {
       timerRunning = false;
@@ -1331,16 +1374,15 @@ void MakeCoffee() {
     }
     average_FM = 0;
     average_PT = 0;
-    presX = 25;
-    flowX_FM = 25;
-    flowX_PT = 25;
-    LunarX = 25;
+    presX = 36;
+    flowX_FM = 36;
+    flowX_PT = 36;
+    LunarX = 36;
   }
   if (digitalRead(SWITCHPIN) == LOW) {
     Serial.println("Switch On");
     if (weightStopper == false) {
       digitalWrite(BREWSOLENOIDPIN, HIGH);
-      Serial.println("Solenoid open!");
     }
     if (weightStopper == true) {
       Serial.println("weightStopper TRUE Line 1354");
@@ -1366,9 +1408,9 @@ void MakeCoffee() {
     }
     if (weightStopper == false) {
       RunPhase();
-      UpdateShotTimer(); //is this a duplicate? UpdateHome also calls out UpdateShotTimer, I think
+      UpdateShotTimer();  //is this a duplicate? UpdateHome also calls out UpdateShotTimer, I think
       UpdatePlot();
-      currentTime = millis(); 
+      currentTime = millis();
     }
     shotTimer = (currentTime - shotStart) / 1000;
   }
