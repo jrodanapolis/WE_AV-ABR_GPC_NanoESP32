@@ -2,8 +2,9 @@
 #include <Adafruit_GFX.h>
 #include <SPI.h>
 #include <Wire.h>
-#include <Adafruit_HX8357.h>
-#include <Adafruit_FT5336.h>
+#include <Adafruit_HX8357.h> //Screen library
+#include <Adafruit_FT5336.h> //Touchpad library
+#include <Adafruit_MCP4725.h> //DAC library
 #include <Preferences.h>
 #include <ArduinoBLE.h>
 #include <lunarGateway.h>
@@ -34,7 +35,7 @@ float LunarPlot = 0.0;
 float lastLunarPlot = 220;
 float LunarX = 36;
 float dripFactor = 2.0;
-float plotStep = 0.48;
+float plotStep = 0.117;
 int autofillTimer = 0;
 int autofillSpeed = 0;
 int counter;
@@ -133,11 +134,9 @@ bool timerRunning;
 #define PRESSUREPIN A1
 #define SWITCHPIN A2
 #define POTENTIOMETERPIN A3
-#define AUTOFILLSPEEDPIN A6
-#define BREWSPEEDPIN A7
-#define BREWSOLENOIDPIN 2
-#define AUTOFILLSOLENOIDPIN 3
-#define PUMPTACHPIN 4
+#define PUMPTACHPIN A7
+#define AUTOFILLSOLENOIDPIN 2
+#define BREWSOLENOIDPIN 3
 #define SDCSPIN 5  // SD card (mounted to screen), not used yet
 #define BRIGHTNESSPIN 6
 #define OEMAUTOFILLREADPIN 7
@@ -146,7 +145,11 @@ bool timerRunning;
 #define TFT_DC 10
 #define TFT_RST -1
 
-// Wired screen setup
+//DAC setup
+Adafruit_MCP4725 dac;
+
+
+// 3.5" Wired screen and touchpad setup
 Adafruit_HX8357 tft = Adafruit_HX8357(TFT_CS, TFT_DC);
 Adafruit_FT5336 ctp = Adafruit_FT5336();
 #define FT5336_MAXTOUCHES 5
@@ -232,26 +235,26 @@ ProfileType Profiles[NumberOfProfiles] = {
   { "Flat 9", 50, 200, 96, 76, Automatic, { { "PI", 3.0, 0.0, 0.0, 15, 1, false, false, true, false, false }, { "Ramp", 9.0, 0.0, 0.0, 3, 0, false, false, true, false, false }, { "9 Bar", 9.0, 0.0, 0.0, 42, 0, false, false, true, false, false } } },
   { "Slayer 9", 150, 200, 96, 76, Interactive, { { "  PI  ", 3.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "9 Bar", 9.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "9 Bar", 9.0, 0.0, 0.0, 0, 0, false, false, false, false, true } } },
   { "WE Pro 3:1", 250, 200, 96, 76, Automatic, { { "Start", 2.5, 0, 50.0, 2, 0, false, false, true, true, false }, { "PI 1/2", 4.5, 0.0, 50.0, 12, 6, false, false, true, true, false }, { "PI 2/2", 2.5, 0.0, 50.0, 15, 10, false, false, true, true, false }, { "9 Bar", 8, 0.0, 50.0, 15, 3, false, false, true, true, false }, { "Decrease", 6.5, 0.0, 50.0, 15, 15, false, false, true, true, false }, { " Hold ", 6.5, 0.0, 50.0, 30, 30, false, false, true, true, false } } },
-  { "Leva X", 50, 280, 96, 76, Automatic, { { "PI", 3.0, 0.0, 0.0, 10, 1, false, false, true, false, false }, { "Ramp", 9.0, 0.0, 0.0, 2, 1, true, false, true, false, false }, { "Decrease", 4.0, 0.0, 0.0, 40, 40, false, false, true, false, false }, { "Finishing", 4.0, 0.0, 0.0, 8, 3, false, false, true, false, false } } },
-  { "Turbo", 150, 280, 96, 76, Automatic, { { "PI", 3.0, 0.0, 0.0, 15, 1, false, false, true, false, false }, { "Ramp", 6.0, 0.0, 0.0, 3, 0, false, false, true, false, false }, { "6 Bar", 6.0, 0.0, 0.0, 42, 0, false, false, true, false, false } } },
-  { "Spro Over", 250, 280, 96, 76, Automatic, { { "PI", 3.0, 0.0, 0.0, 15, 1, false, false, true, false, false }, { "Ramp", 6.0, 0.0, 0.0, 3, 0, false, false, true, false, false }, { "6 Bar", 6.0, 0.0, 0.0, 42, 0, false, false, true, false, false } } },
+  { "Leva X", 50, 280, 96, 76, Automatic, { { "PI", 3.0, 0.0, 0.0, 10, 1, false, false, true, false, false }, { "Ramp", 9.0, 0.0, 0.0, 2, 1, true, false, true, false, false }, { "Decrease", 4.0, 0.0, 0.0, 40, 40, false, false, true, false, false }, { "Hold", 4.0, 0.0, 0.0, 8, 3, false, false, true, false, false } } },
+  { "Turbo", 150, 280, 96, 76, Automatic, { { "PI", 3.0, 0.0, 0.0, 15, 1, false, false, true, false, false }, { "Ramp", 6.0, 0.0, 0.0, 3, 0, false, false, true, false, false }, { "Extract", 6.0, 0.0, 0.0, 42, 0, false, false, true, false, false } } },
+  { "Spro Over", 250, 280, 96, 76, Automatic, { { "PI", 3.0, 0.0, 0.0, 15, 1, false, false, true, false, false }, { "Ramp", 6.0, 0.0, 0.0, 3, 0, false, false, true, false, false }, { "Extract", 6.0, 0.0, 0.0, 42, 0, false, false, true, false, false } } },
 };
 
 // converting target pressure into a DAC value for the profiles... the "pressures" current set in the profiles above won't go off of read pressure, but rather target pressure
-// this would be a great place to work in a pressure PID/feedback loop for true pressure profiling instead of targeted pressure profiling
+// this would be a great place to work in a pressure PID or feedback loop for true pressure profiling instead of targeted pressure profiling
 int pressureToDACConvertion(float pressure) {
-  float dac = -1.889 * pow(pressure, 2) + (37.667 * pressure) - 46;
+  float dac = -16.667 * pow(pressure, 2) + (433.33 * pressure) + 50;
   if (dac < 0) {
     dac = 0;
   }
-  if (dac > 150) {
+  if (dac > 2600) {
 
-    dac = 150;
+    dac = 2600;
   }
   return dac;
 }
 float dacToPressureConvertion(int dacValue) {
-  return 0.0007 * pow(dacValue, 2) - 0.0574 * dacValue + 4.2366;
+  return 0.0000008 * pow(dacValue, 2) - 0.001 * dacValue + 0.6941;
 }
 bool isCloseEnough(float targetPressure, float currentPressure) {
   float acceptablePercentage = 0.1;
@@ -349,7 +352,7 @@ void PrintPhase() {
 
 // Simple void to update pump speed
 void UpdatePump() {
-  analogWrite(BREWSPEEDPIN, pumpDACValue);
+  dac.setVoltage(pumpDACValue, false);
   lastPumpDACValue = pumpDACValue;
 }
 
@@ -413,14 +416,14 @@ bool CheckExitCriteria() {
       Serial.println("weightStopper TRUE line 370");
       Profiles[selectedProfile].profileState = Stopped;
       pumpDACValue = 0;
-      analogWrite(BREWSPEEDPIN, pumpDACValue);
+      dac.setVoltage(pumpDACValue, false);
     }
   }
   return exit;
 }
 float calculateStepSize(float previousPressureValue, float newPressureValue, int transitionTime) {
-  float stepsPerSecond = 10.4;
-  float stepSize = 15;
+  float stepsPerSecond = 40;
+  float stepSize = 10;
   if (transitionTime <= 0) {
     stepSize = newPressureValue - previousPressureValue;
     return stepSize;
@@ -649,16 +652,16 @@ void DrawPlot() {
   tft.drawLine(450, 300, 460, 300, TEXT_COLOR);
 
   tft.setTextColor(FLOW_COLOR, BACKGROUND_COLOR);  //Y axis scale for flow
-  tft.setCursor(470, 142);
-  tft.print("5");
+  tft.setCursor(467, 142);
+  tft.print("10");
   tft.setCursor(470, 172);
-  tft.print("4");
+  tft.print("8");
   tft.setCursor(470, 202);
-  tft.print("3");
+  tft.print("6");
   tft.setCursor(470, 232);
-  tft.print("2");
+  tft.print("4");
   tft.setCursor(470, 262);
-  tft.print("1");
+  tft.print("2");
   tft.setCursor(470, 295);
   tft.print("0");
 
@@ -667,15 +670,15 @@ void DrawPlot() {
   tft.setTextColor(TIME_COLOR, BACKGROUND_COLOR);
   tft.setCursor(10, 75);
   tft.print("Time: ");
-  tft.setCursor(16, 120);
+  tft.setCursor(20, 120);
   tft.print("sec");
   tft.setTextColor(PRESSURE_COLOR, BACKGROUND_COLOR);
   tft.setCursor(85, 75);
   tft.print("Pressure: ");
-  tft.setCursor(110, 120);
+  tft.setCursor(120, 120);
   tft.print("Bar");
   tft.setTextSize(1);
-  tft.setCursor(40, 140);
+  tft.setCursor(35, 140);
   tft.print("Pressure");
   tft.setTextSize(2);
   tft.setTextColor(FLOW_COLOR, BACKGROUND_COLOR);
@@ -688,14 +691,14 @@ void DrawPlot() {
   tft.print("Flow /");
   tft.setTextSize(2);
   tft.setTextColor(RPM_COLOR, BACKGROUND_COLOR);
-  tft.setCursor(315, 75);
+  tft.setCursor(310, 75);
   tft.print("Pump: ");
-  tft.setCursor(315, 120);
+  tft.setCursor(310, 120);
   tft.print("mL/s");
   tft.setTextColor(PUMP_COLOR, BACKGROUND_COLOR);
   tft.setCursor(395, 75);
   tft.print("Weight: ");
-  tft.setCursor(395, 120);
+  tft.setCursor(405, 120);
   tft.print("grams");
   tft.setTextSize(1);
   tft.setCursor(415, 140);
@@ -739,14 +742,13 @@ void InitButtons() {
   NavButtons[HOME_NAV].initButton(&tft, 45, 35, 80, 60, BUTTON_OUTLINE_COLOR,
 
                                   BUTTON_COLOR, TEXT_COLOR, "Home", 1);
-  UpDown[0].initButton(&tft, 225, 115, 25, 25, BUTTON_OUTLINE_COLOR, BUTTON_COLOR, TEXT_COLOR, "+", 1);
-  UpDown[1].initButton(&tft, 225, 145, 25, 25, BUTTON_OUTLINE_COLOR, BUTTON_COLOR, TEXT_COLOR, "-", 1);
+  UpDown[0].initButton(&tft, 225, 135, 25, 25, BUTTON_OUTLINE_COLOR, BUTTON_COLOR, TEXT_COLOR, "+", 1);
+  UpDown[1].initButton(&tft, 225, 155, 25, 25, BUTTON_OUTLINE_COLOR, BUTTON_COLOR, TEXT_COLOR, "-", 1);
 }
 int UpdateManual() {
   potentiometer = analogRead(POTENTIOMETERPIN);
-  //Serial.println(potentiometer);
-  if (potentiometer >= 1750) {
-    return (-0.25 * potentiometer) + 580;
+  if (potentiometer >= 1600) {
+    return (-3.25 * potentiometer) + 8130;
   } else {
     return 0;
   }
@@ -785,24 +787,24 @@ void UpdateStartupTimer() {
 void UpdateShotCounter() {
   tft.setTextColor(TEXT_COLOR, BACKGROUND_COLOR);
   tft.setTextSize(2);
-  tft.setCursor(20, 60);
+  tft.setCursor(20, 100);
   tft.print(String("Shot Count: ") + String(ShotCounter));
 }
 
 void UpdateDoseSize() {
   tft.setTextColor(TEXT_COLOR, BACKGROUND_COLOR);
   tft.setTextSize(2);
-  tft.setCursor(20, 120);
+  tft.setCursor(20, 140);
   tft.print(String("Dose Size: ") + String(DoseSize));
 }
 
 void InitBrightness() {
-  tft.fillCircle(lastBrightnessX, 200, 15, BACKGROUND_COLOR);
+  tft.fillCircle(lastBrightnessX, 220, 15, BACKGROUND_COLOR);
   tft.drawFastHLine(sliderStart, sliderY, 255, TEXT_COLOR);
-  tft.fillCircle(SelectedBrightness, 200, 15, BUTTON_COLOR);
+  tft.fillCircle(SelectedBrightness, 220, 15, BUTTON_COLOR);
   tft.setTextColor(TEXT_COLOR, BACKGROUND_COLOR);
   tft.setTextSize(2);
-  tft.setCursor(20, 165);
+  tft.setCursor(20, 205);
   tft.print("Brightness");
   lastBrightnessX = SelectedBrightness;
   analogWrite(BRIGHTNESSPIN, SelectedBrightness);
@@ -867,9 +869,9 @@ void UpdatePlot() {
   // Future upgrade may be to tell the Arduino to stop searching for the Lunar if it isn't connected and a shot starts?
   // In addition to that, I think the plot should be changed to plot every so often, rather than EVERY time through the loop?
   if (lunar.connected()) {
-    plotStep = 0.48;
+    plotStep = 0.117;
   } else {
-    plotStep = 0.48;
+    plotStep = 0.117;
   }
 
   //Plot Pressure
@@ -887,7 +889,7 @@ void UpdatePlot() {
   tft.drawLine(LunarX - plotStep, lastLunarPlot, LunarX, LunarPlot, PUMP_COLOR);
   lastLunarPlot = LunarPlot;
   LunarX = LunarX + plotStep;
-  //Plot Pump Tachometer - not being plotted right now, can be added back in later
+  //Plot Pump Tachometer - not being plotted right now, can be added back in later if we want to track pump tach/flow
   //tft.drawCircle(flowX_PT, flowPlot_PT, 1, PUMP_COLOR);
   //tft.drawLine(flowX_PT - plotStep, lastFlowPlot_PT, flowX_PT, flowPlot_PT, PUMP_COLOR);
   //lastFlowPlot_PT = flowPlot_PT;
@@ -1015,8 +1017,8 @@ bool CheckButtonPress() {
     // Check if z (pressure) is zero, skip if so
     if (ps[j].z == 0) continue;
     
-    ps[j].x = map(ps[j].x, 0, 320, 0, 320);
-    ps[j].y = map(ps[j].y, 0, 480, 480, 0);
+    //swaps x values to match touchpoints on screen
+    ps[j].x = map(ps[j].x, 0, 320, 320, 0);
     
     // Print out the remapped/rotated coordinates
     Serial.print("(");
@@ -1027,8 +1029,8 @@ bool CheckButtonPress() {
   }
 
 
-  LastXTouched = ps[0].y;
-  LastYTouched = ps[0].x;                                                  //used to say "tft.height() - ps[i].x"
+  LastXTouched = ps[0].y; // why are these switched? should they be?
+  LastYTouched = ps[0].x; // why are these switched? should they be? This used to say "tft.height() - ps[i].x"
   //tft.drawPixel(LastXTouched, LastYTouched, tft.color565(50, 205, 50));  //uncomment if you need to see what x/y you're touching
   Serial.println(ps[0].x, ps[0].y);
   Serial.println(LastXTouched, LastYTouched);
@@ -1038,7 +1040,7 @@ bool CheckButtonPress() {
 void UpdateShotTimer() {
   tft.setTextColor(TIME_COLOR, BACKGROUND_COLOR);
   tft.setTextSize(3);
-  tft.setCursor(10, 95);
+  tft.setCursor(15, 95);
   tft.print(shotTimer);
   if (shotTimer <= 9) {
     tft.print(" ");
@@ -1051,7 +1053,7 @@ void UpdatePressure() {
   presPlot = map(readPressure * 100, 0.0 * 100, 10 * 100, 300, 148);
   tft.setTextSize(3);
   tft.setTextColor(PRESSURE_COLOR, BACKGROUND_COLOR);
-  tft.setCursor(100, 95);
+  tft.setCursor(105, 95);
   tft.print(abs(readPressure), 1);
   if (readPressure <= 9.9) {
     tft.print(" ");
@@ -1105,7 +1107,7 @@ void UpdateFlowMeter() {
   average_FM = total_FM / numReadings_FM;
   flowRate_FM = average_FM / 60.0;
   flowRate_FM_Display = constrain(flowRate_FM, 0.0, 10.0);
-  flowPlot_FM = map(flowRate_FM * 100, 0.0 * 100, 5.0 * 100, 298, 152);
+  flowPlot_FM = map(flowRate_FM * 100, 0.0 * 100, 10.0 * 100, 298, 152);
   flowPlot_FM = constrain(flowPlot_FM, 152, 298);
   tft.setTextSize(3);
   tft.setCursor(215, 95);
@@ -1146,9 +1148,9 @@ void UpdatePumpTach() {
   duty_PT = average_PT / 50;
   flowPlot_PT = map(flowRate_PT * 100, 0.0 * 100, 20.0 * 100, 298, 152);
   flowPlot_PT = constrain(flowPlot_PT, 152, 298);
-  flowRate_PT = RPM_PT / 60.0 * 0.3;
+  flowRate_PT = RPM_PT / 60.0 * 0.3; //From pump datasheet, where 1 rotation = 0.3 mL
   tft.setTextSize(3);
-  tft.setCursor(315, 95);
+  tft.setCursor(305, 95);
   tft.setTextColor(RPM_COLOR, BACKGROUND_COLOR);
   tft.print(flowRate_PT, 1);
   if (flowRate_PT <= 9.9) {
@@ -1175,7 +1177,7 @@ void ble_discover_lunar() {
       if (lunar.connect(&peripheral)) {
         Serial.println("Found LUNAR device");
         found_lunar = true;
-        scale_read_last_time = 0;
+        scale_read_last_time = 0; //I don't think this is right - doesn't this need to be = millis() when it's read? needs fixed
         BLE.stopScan();
       }
     }
@@ -1217,19 +1219,17 @@ void HandleLunar() {
 }
 
 void setup() {
-  pinMode(A0, INPUT_PULLDOWN);
+  pinMode(FLOWMETERPIN, INPUT_PULLDOWN);
   pinMode(SWITCHPIN, INPUT);
   pinMode(POTENTIOMETERPIN, INPUT);
   pinMode(PRESSUREPIN, INPUT);
-  pinMode(A6, OUTPUT);
-  pinMode(A7, OUTPUT);
-  pinMode(2, OUTPUT);
-  pinMode(3, OUTPUT);
-  pinMode(4, INPUT);
-  pinMode(5, OUTPUT);
-  pinMode(6, OUTPUT);
-  pinMode(7, INPUT);
-  pinMode(8, INPUT);
+  pinMode(PUMPTACHPIN, INPUT);
+  pinMode(AUTOFILLSOLENOIDPIN, OUTPUT);
+  pinMode(BREWSOLENOIDPIN, OUTPUT);
+  pinMode(SDCSPIN, OUTPUT);
+  pinMode(BRIGHTNESSPIN, OUTPUT);
+  pinMode(OEMAUTOFILLREADPIN, INPUT);
+  pinMode(OEMBREWREADPIN, INPUT);
   attachInterrupt(digitalPinToInterrupt(FLOWMETERPIN), Pulse_Event_FM, FALLING);
   attachInterrupt(digitalPinToInterrupt(PUMPTACHPIN), Pulse_Event_PT, RISING);
   delay(1000);
@@ -1237,22 +1237,25 @@ void setup() {
 
   timerRunning = false;
 
-  tft.begin(2400000);
-  ctp.begin(2400000);
+  dac.begin(0x61);
+  Serial.println("DAC started");
+  dac.setVoltage(0, true); // "true" sets EEPROM DAC value to zero so that the pump doesn't run when power cycled
+
+  tft.begin();
   if (!ctp.begin(FT53XX_DEFAULT_ADDR, &Wire)) {  // pass in 'sensitivity' coefficient and I2C bus
     Serial.println("Couldn't start FT5336 touchscreen controller");
     while (1) delay(10);
   }
-
   Serial.println("Capacitive touchscreen started");
-  tft.setRotation(3);
+  
+  tft.setRotation(1);
   startTime = millis();
   InitFromPreferences();
   InitButtons();
   analogWrite(BRIGHTNESSPIN, SelectedBrightness);
 
+  Serial.println("Starting...");
   DrawBootScreen();
-  Serial.println("Welcome to the WE AV-ABR Profiling Mod!");
 
   // initialize scale
   found_lunar = false;
@@ -1265,9 +1268,11 @@ void setup() {
     Serial.println("Failed to begin BLE");
   }
   DrawHomeScreen();
+  Serial.println("Welcome to the WE AV-ABR Profiling Mod!");
+
 }
 void ClearPlot() {
-  tft.fillRect(30, 147, 420, 150, 0x0000);      // clear plot, and then redraw the grid lines below
+  tft.fillRect(30, 147, 420, 152, 0x0000);      // clear plot, and then redraw the grid lines below
   tft.drawLine(30, 150, 450, 150, GRID_COLOR);  // Horizontal lines for pressure/flow grid
   tft.drawLine(30, 165, 450, 165, GRID_COLOR);
   tft.drawLine(30, 180, 450, 180, GRID_COLOR);
@@ -1296,10 +1301,11 @@ void ClearPlot() {
 void CheckAutoFill() {
   if (digitalRead(SWITCHPIN) == HIGH) {
     if (digitalRead(OEMAUTOFILLREADPIN) == LOW) {
+      digitalWrite(AUTOFILLSOLENOIDPIN, HIGH);
+      Serial.println("Autofill solenoid open");
       autofillTimer = millis();
-      if ((autofillTimer + 5000) >= millis()) {
-        autofillSpeed = 120;
-        analogWrite(AUTOFILLSPEEDPIN, autofillSpeed);
+      if ((autofillTimer + 5000) >= millis()) { // This is supposed to be a 5 second autofill timer to keep it from bouncing on and off but it isn't quite right
+        autofillSpeed = 2000; //DAC value of 2000 runs at about the pump speed for 6 bar
       }
       if (SelectedScreen == HOME) {
         tft.setTextSize(3);
@@ -1309,7 +1315,6 @@ void CheckAutoFill() {
       }
     } else {
       autofillSpeed = 0;
-      analogWrite(AUTOFILLSPEEDPIN, autofillSpeed);
       tft.setTextSize(3);
       tft.setCursor(getCenteredX("           "), 40);
       tft.setTextColor(TEXT_COLOR, BACKGROUND_COLOR);
@@ -1318,9 +1323,9 @@ void CheckAutoFill() {
       }
     }
   }
+        dac.setVoltage(autofillSpeed, false);
 }
 void UpdateScreen() {
-
   if (SelectedScreen == HOME) {
     UpdateHome();
   }
@@ -1357,9 +1362,8 @@ void MakeCoffee() {
   if (digitalRead(SWITCHPIN) == HIGH) {
     digitalWrite(BREWSOLENOIDPIN, LOW);
     //Serial.println("Switch is off");
-    CheckAutoFill();
     pumpDACValue = 0;
-    analogWrite(BREWSPEEDPIN, pumpDACValue);
+    CheckAutoFill();
     if (weightStopper = true) {
       weightStopper = false;
       // Serial.println("weightStopper FALSE Line 1262");
@@ -1395,7 +1399,6 @@ void MakeCoffee() {
     if (!timerRunning) {
       ClearPlot();
       shotStart = millis();
-
       shotTimer = 0;
       resetPhaseTimer();
       //ResetFlowCalculations();
@@ -1404,7 +1407,7 @@ void MakeCoffee() {
       Profiles[selectedProfile].profileState = Running;
       PrintPhase();
       pumpDACValue = 0;
-      analogWrite(BREWSPEEDPIN, pumpDACValue);
+      dac.setVoltage(pumpDACValue, false);
     }
     if (weightStopper == false) {
       RunPhase();
@@ -1420,4 +1423,5 @@ void loop(void) {
   UpdateScreen();
   MakeCoffee();
   HandleLunar();
+  Serial.println(potentiometer);
 }
