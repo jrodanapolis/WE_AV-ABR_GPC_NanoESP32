@@ -2,9 +2,9 @@
 #include <Adafruit_GFX.h>
 #include <SPI.h>
 #include <Wire.h>
-#include <Adafruit_HX8357.h> //Screen library
-#include <Adafruit_FT5336.h> //Touchpad library
-#include <Adafruit_MCP4725.h> //DAC library
+#include <Adafruit_HX8357.h>   //Screen library
+#include <Adafruit_FT5336.h>   //Touchpad library
+#include <Adafruit_MCP4725.h>  //DAC library
 #include <Preferences.h>
 #include <ArduinoBLE.h>
 #include <lunarGateway.h>
@@ -227,14 +227,14 @@ struct ProfileType {
 };
 ProfileType Profiles[NumberOfProfiles] = {
   { "EMP", 50, 40, 96, 76, Manual, { { " Manual", 0.0, 0.0, 0.0, 0, 0, false, false, false, false, false } } },
-  { "3-6-9", 150, 40, 96, 76, Interactive, { { "3 Bar", 3.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "6 Bar", 6.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "9 Bar", 9.0, 0.0, 0.0, 0, 0, false, false, false, false, true } } },
-  { "ExDos!",250, 40, 96, 76, Automatic, { { "PI", 3.0, 0.0, 0.0, 15, 1, false, false, true, false, false }, { "Ramp", 6.0, 0.0, 0.0, 3, 0, false, false, true, false, false }, { "6 Bar", 6.0, 0.0, 0.0, 42, 0, false, false, true, false, false } } },
+  { "3-6-9", 150, 40, 96, 76, Interactive, { { "  Line  ", 0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "3 Bar", 3.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "6 Bar", 6.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "9 Bar", 9.0, 0.0, 0.0, 0, 0, false, false, false, false, true } } },
+  { "ExDos!", 250, 40, 96, 76, Automatic, { { "PI", 3.0, 0.0, 0.0, 15, 1, false, false, true, false, false }, { "Ramp", 6.0, 0.0, 0.0, 3, 0, false, false, true, false, false }, { "6 Bar", 6.0, 0.0, 0.0, 42, 0, false, false, true, false, false } } },
   { "Flat 6", 50, 120, 96, 76, Automatic, { { "PI", 3.0, 0.0, 0.0, 15, 1, false, false, true, false, false }, { "Ramp", 6.0, 0.0, 0.0, 3, 0, false, false, true, false, false }, { "6 Bar", 6.0, 0.0, 0.0, 42, 0, false, false, true, false, false } } },
-  { "Slayer 6", 150, 120, 96, 76, Interactive, { { "  PI  ", 3.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "6 Bar", 6.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "6 Bar", 6.0, 0.0, 0.0, 0, 0, false, false, false, false, true } } },
-  { "WE Pro 2:1", 250, 120, 96, 76, Automatic, { { "Start", 2.5, 0, 40.0, 2, 0, false, false, true, true, false }, { "PI 1/2", 4.5, 0.0, 40.0, 12, 6, false, false, true, true, false }, { "PI 2/2", 2.5, 0.0, 40.0, 15, 10, false, false, true, true, false }, { "9 Bar", 8, 0.0, 40.0, 15, 3, false, false, true, true, false }, { "Decrease", 6.5, 0.0, 40.0, 15, 15, false, false, true, true, false }, { " Hold ", 6.5, 0.0, 40.0, 30, 30, false, false, true, true, false } } },
+  { "Slayer 6", 150, 120, 96, 76, Interactive, { { "  Line  ", 0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "  PI  ", 3.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "  PI  ", 3.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "6 Bar", 6.0, 0.0, 0.0, 0, 0, false, false, false, false, true } } },
+  { "WE Pro 2:1", 250, 120, 96, 76, Automatic, { { "Start", 2, 0, 40.0, 2, 0, false, false, true, true, false }, { "PI 1/2", 4, 0.0, 40.0, 12, 6, false, false, true, true, false }, { "PI 2/2", 2, 0.0, 40.0, 15, 10, false, false, true, true, false }, { "9 Bar", 8, 0.0, 40.0, 20, 3, false, false, true, true, false }, { "Decrease", 6.5, 0.0, 40.0, 15, 15, false, false, true, true, false }, { " Hold ", 6.5, 0.0, 40.0, 30, 30, false, false, true, true, false } } },
   { "Flat 9", 50, 200, 96, 76, Automatic, { { "PI", 3.0, 0.0, 0.0, 15, 1, false, false, true, false, false }, { "Ramp", 9.0, 0.0, 0.0, 3, 0, false, false, true, false, false }, { "9 Bar", 9.0, 0.0, 0.0, 42, 0, false, false, true, false, false } } },
-  { "Slayer 9", 150, 200, 96, 76, Interactive, { { "  PI  ", 3.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "9 Bar", 9.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "9 Bar", 9.0, 0.0, 0.0, 0, 0, false, false, false, false, true } } },
-  { "WE Pro 3:1", 250, 200, 96, 76, Automatic, { { "Start", 2.5, 0, 50.0, 2, 0, false, false, true, true, false }, { "PI 1/2", 4.5, 0.0, 50.0, 12, 6, false, false, true, true, false }, { "PI 2/2", 2.5, 0.0, 50.0, 15, 10, false, false, true, true, false }, { "9 Bar", 8, 0.0, 50.0, 15, 3, false, false, true, true, false }, { "Decrease", 6.5, 0.0, 50.0, 15, 15, false, false, true, true, false }, { " Hold ", 6.5, 0.0, 50.0, 30, 30, false, false, true, true, false } } },
+  { "Slayer 9", 150, 200, 96, 76, Interactive, { { "  Line  ", 0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "  PI  ", 3.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "  PI  ", 3.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "9 Bar", 9.0, 0.0, 0.0, 0, 0, false, false, false, false, true } } },
+  { "WE Pro 3:1", 250, 200, 96, 76, Automatic, { { "Start", 2, 0, 50.0, 2, 0, false, false, true, true, false }, { "PI 1/2", 4, 0.0, 50.0, 12, 6, false, false, true, true, false }, { "PI 2/2", 2, 0.0, 50.0, 15, 10, false, false, true, true, false }, { "9 Bar", 8, 0.0, 50.0, 20, 3, false, false, true, true, false }, { "Decrease", 6.5, 0.0, 50.0, 15, 15, false, false, true, true, false }, { " Hold ", 6.5, 0.0, 50.0, 30, 30, false, false, true, true, false } } },
   { "Leva X", 50, 280, 96, 76, Automatic, { { "PI", 3.0, 0.0, 0.0, 10, 1, false, false, true, false, false }, { "Ramp", 9.0, 0.0, 0.0, 2, 1, true, false, true, false, false }, { "Decrease", 4.0, 0.0, 0.0, 40, 40, false, false, true, false, false }, { "Hold", 4.0, 0.0, 0.0, 8, 3, false, false, true, false, false } } },
   { "Turbo", 150, 280, 96, 76, Automatic, { { "PI", 3.0, 0.0, 0.0, 15, 1, false, false, true, false, false }, { "Ramp", 6.0, 0.0, 0.0, 3, 0, false, false, true, false, false }, { "Extract", 6.0, 0.0, 0.0, 42, 0, false, false, true, false, false } } },
   { "Spro Over", 250, 280, 96, 76, Automatic, { { "PI", 3.0, 0.0, 0.0, 15, 1, false, false, true, false, false }, { "Ramp", 6.0, 0.0, 0.0, 3, 0, false, false, true, false, false }, { "Extract", 6.0, 0.0, 0.0, 42, 0, false, false, true, false, false } } },
@@ -243,18 +243,18 @@ ProfileType Profiles[NumberOfProfiles] = {
 // converting target pressure into a DAC value for the profiles... the "pressures" current set in the profiles above won't go off of read pressure, but rather target pressure
 // this would be a great place to work in a pressure PID or feedback loop for true pressure profiling instead of targeted pressure profiling
 int pressureToDACConvertion(float pressure) {
-  float dac = -16.667 * pow(pressure, 2) + (433.33 * pressure) + 50;
+  float dac = ((294.55 * pressure) + 338.18);
   if (dac < 0) {
     dac = 0;
   }
-  if (dac > 2600) {
+  if (dac > 3000) {
 
-    dac = 2600;
+    dac = 3000;
   }
   return dac;
 }
 float dacToPressureConvertion(int dacValue) {
-  return 0.0000008 * pow(dacValue, 2) - 0.001 * dacValue + 0.6941;
+  return ((0.0034 * dacValue) - 1.148);
 }
 bool isCloseEnough(float targetPressure, float currentPressure) {
   float acceptablePercentage = 0.1;
@@ -314,17 +314,20 @@ int getPaddleState() {
   if (Profiles[selectedProfile].mode != Interactive) {
     return -1;
   }
-  if (analogRead(POTENTIOMETERPIN) >= 2203) {
-    return 0;
-  }
-  if ((analogRead(POTENTIOMETERPIN) < 2203) && (analogRead(POTENTIOMETERPIN) >= 1937)) {
-    return 1;
-  }
-  if ((analogRead(POTENTIOMETERPIN) < 1937) && (analogRead(POTENTIOMETERPIN) >= 1489)) {
-    return 2;
-  }
-  if (analogRead(POTENTIOMETERPIN) <= 1489) {
-    return 3;
+  if (Profiles[selectedProfile].mode == Interactive) {
+    potentiometer = analogRead(POTENTIOMETERPIN);
+    if (potentiometer >= 1050) {
+      return 0;
+    }
+    if ((potentiometer < 1050) && (potentiometer >= 870)) {
+      return 1;
+    }
+    if ((potentiometer < 870) && (potentiometer >= 650)) {
+      return 2;
+    }
+    if (potentiometer <= 650) {
+      return 3;
+    }
   }
 }
 
@@ -747,8 +750,8 @@ void InitButtons() {
 }
 int UpdateManual() {
   potentiometer = analogRead(POTENTIOMETERPIN);
-  if (potentiometer >= 1600) {
-    return (-3.25 * potentiometer) + 8130;
+  if (potentiometer >= 500) {
+    return (-4.28 * potentiometer) + 5375;
   } else {
     return 0;
   }
@@ -935,14 +938,14 @@ void WriteShotCounter() {
   if (ShotCounterInPreferences != ShotCounter) {
     ShotCounterInPreferences = ShotCounter;
     Preferences.putUInt("shortCounter", ShotCounterInPreferences);
-    tft.setTextColor(TEXT_COLOR, BACKGROUND_COLOR);
-    tft.setTextSize(1);
-    tft.setCursor(0, 225);
-    tft.print(" ");
-    tft.setTextColor(TEXT_COLOR, BACKGROUND_COLOR);
-    tft.setTextSize(1);
-    tft.setCursor(0, 225);
-    tft.print(ShotCounter);
+    //tft.setTextColor(TEXT_COLOR, BACKGROUND_COLOR);
+    //tft.setTextSize(1);
+    //tft.setCursor(0, 225);
+    //tft.print(" ");
+    //tft.setTextColor(TEXT_COLOR, BACKGROUND_COLOR);
+    //tft.setTextSize(1);
+    //tft.setCursor(0, 225);
+    //tft.print(ShotCounter);
   }
 }
 void WriteSelectedProfile() {
@@ -1016,10 +1019,10 @@ bool CheckButtonPress() {
   for (int j = 0; j < FT5336_MAXTOUCHES; j++) {
     // Check if z (pressure) is zero, skip if so
     if (ps[j].z == 0) continue;
-    
+
     //swaps x values to match touchpoints on screen
     ps[j].x = map(ps[j].x, 0, 320, 320, 0);
-    
+
     // Print out the remapped/rotated coordinates
     Serial.print("(");
     Serial.print(ps[j].x);
@@ -1029,8 +1032,8 @@ bool CheckButtonPress() {
   }
 
 
-  LastXTouched = ps[0].y; // why are these switched? should they be?
-  LastYTouched = ps[0].x; // why are these switched? should they be? This used to say "tft.height() - ps[i].x"
+  LastXTouched = ps[0].y;  // why are these switched? should they be?
+  LastYTouched = ps[0].x;  // why are these switched? should they be? This used to say "tft.height() - ps[i].x"
   //tft.drawPixel(LastXTouched, LastYTouched, tft.color565(50, 205, 50));  //uncomment if you need to see what x/y you're touching
   Serial.println(ps[0].x, ps[0].y);
   Serial.println(LastXTouched, LastYTouched);
@@ -1148,7 +1151,7 @@ void UpdatePumpTach() {
   duty_PT = average_PT / 50;
   flowPlot_PT = map(flowRate_PT * 100, 0.0 * 100, 20.0 * 100, 298, 152);
   flowPlot_PT = constrain(flowPlot_PT, 152, 298);
-  flowRate_PT = RPM_PT / 60.0 * 0.3; //From pump datasheet, where 1 rotation = 0.3 mL
+  flowRate_PT = RPM_PT / 60.0 * 0.3;  //From pump datasheet, where 1 rotation = 0.3 mL
   tft.setTextSize(3);
   tft.setCursor(305, 95);
   tft.setTextColor(RPM_COLOR, BACKGROUND_COLOR);
@@ -1177,7 +1180,7 @@ void ble_discover_lunar() {
       if (lunar.connect(&peripheral)) {
         Serial.println("Found LUNAR device");
         found_lunar = true;
-        scale_read_last_time = 0; //I don't think this is right - doesn't this need to be = millis() when it's read? needs fixed
+        scale_read_last_time = 0;  //I don't think this is right - doesn't this need to be = millis() when it's read? needs fixed
         BLE.stopScan();
       }
     }
@@ -1239,7 +1242,7 @@ void setup() {
 
   dac.begin(0x61);
   Serial.println("DAC started");
-  dac.setVoltage(0, true); // "true" sets EEPROM DAC value to zero so that the pump doesn't run when power cycled
+  dac.setVoltage(0, true);  // "true" sets EEPROM DAC value to zero so that the pump doesn't run when power cycled
 
   tft.begin();
   if (!ctp.begin(FT53XX_DEFAULT_ADDR, &Wire)) {  // pass in 'sensitivity' coefficient and I2C bus
@@ -1247,7 +1250,7 @@ void setup() {
     while (1) delay(10);
   }
   Serial.println("Capacitive touchscreen started");
-  
+
   tft.setRotation(1);
   startTime = millis();
   InitFromPreferences();
@@ -1269,7 +1272,6 @@ void setup() {
   }
   DrawHomeScreen();
   Serial.println("Welcome to the WE AV-ABR Profiling Mod!");
-
 }
 void ClearPlot() {
   tft.fillRect(30, 147, 420, 152, 0x0000);      // clear plot, and then redraw the grid lines below
@@ -1304,8 +1306,8 @@ void CheckAutoFill() {
       digitalWrite(AUTOFILLSOLENOIDPIN, HIGH);
       Serial.println("Autofill solenoid open");
       autofillTimer = millis();
-      if ((autofillTimer + 5000) >= millis()) { // This is supposed to be a 5 second autofill timer to keep it from bouncing on and off but it isn't quite right
-        autofillSpeed = 2000; //DAC value of 2000 runs at about the pump speed for 6 bar
+      if ((autofillTimer + 5000) >= millis()) {  // This is supposed to be a 5 second autofill timer to keep it from bouncing on and off but it isn't quite right
+        autofillSpeed = 2000;                    //DAC value of 2000 runs at about the pump speed for 6 bar
       }
       if (SelectedScreen == HOME) {
         tft.setTextSize(3);
@@ -1323,7 +1325,7 @@ void CheckAutoFill() {
       }
     }
   }
-        dac.setVoltage(autofillSpeed, false);
+  dac.setVoltage(autofillSpeed, false);
 }
 void UpdateScreen() {
   if (SelectedScreen == HOME) {
