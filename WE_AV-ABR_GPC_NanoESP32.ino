@@ -37,7 +37,7 @@ float LunarX = 36;
 float dripFactor = 2.0;
 float plotStep = 0.117;
 int autofillTimer = 0;
-int autofillSpeed = 0;
+int autofillDACValue = 0;
 int counter;
 int sliderStart = 20;
 int sliderEnd = 275;
@@ -231,10 +231,10 @@ ProfileType Profiles[NumberOfProfiles] = {
   { "ExDos!", 250, 40, 96, 76, Automatic, { { "PI", 3.0, 0.0, 0.0, 15, 1, false, false, true, false, false }, { "Ramp", 6.0, 0.0, 0.0, 3, 0, false, false, true, false, false }, { "6 Bar", 6.0, 0.0, 0.0, 42, 0, false, false, true, false, false } } },
   { "Flat 6", 50, 120, 96, 76, Automatic, { { "PI", 3.0, 0.0, 0.0, 15, 1, false, false, true, false, false }, { "Ramp", 6.0, 0.0, 0.0, 3, 0, false, false, true, false, false }, { "6 Bar", 6.0, 0.0, 0.0, 42, 0, false, false, true, false, false } } },
   { "Slayer 6", 150, 120, 96, 76, Interactive, { { "  Line  ", 0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "  PI  ", 3.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "  PI  ", 3.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "6 Bar", 6.0, 0.0, 0.0, 0, 0, false, false, false, false, true } } },
-  { "WE Pro 2:1", 250, 120, 96, 76, Automatic, { { "Start", 2, 0, 40.0, 2, 0, false, false, true, true, false }, { "PI 1/2", 4, 0.0, 40.0, 12, 6, false, false, true, true, false }, { "PI 2/2", 2, 0.0, 40.0, 15, 10, false, false, true, true, false }, { "9 Bar", 8, 0.0, 40.0, 20, 3, false, false, true, true, false }, { "Decrease", 6.5, 0.0, 40.0, 15, 15, false, false, true, true, false }, { " Hold ", 6.5, 0.0, 40.0, 30, 30, false, false, true, true, false } } },
+  { "WE Pro 2:1", 250, 120, 96, 76, Automatic, { { "Start", 1.5, 0, 40.0, 2, 0, false, false, true, true, false }, { "PI 1/2", 4, 0.0, 40.0, 12, 6, false, false, true, true, false }, { "PI 2/2", 1.5, 0.0, 40.0, 15, 10, false, false, true, true, false }, { "9 Bar", 8, 0.0, 40.0, 20, 3, false, false, true, true, false }, { "Decrease", 6.5, 0.0, 40.0, 15, 15, false, false, true, true, false }, { " Hold ", 6.5, 0.0, 40.0, 30, 30, false, false, true, true, false } } },
   { "Flat 9", 50, 200, 96, 76, Automatic, { { "PI", 3.0, 0.0, 0.0, 15, 1, false, false, true, false, false }, { "Ramp", 9.0, 0.0, 0.0, 3, 0, false, false, true, false, false }, { "9 Bar", 9.0, 0.0, 0.0, 42, 0, false, false, true, false, false } } },
   { "Slayer 9", 150, 200, 96, 76, Interactive, { { "  Line  ", 0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "  PI  ", 3.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "  PI  ", 3.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "9 Bar", 9.0, 0.0, 0.0, 0, 0, false, false, false, false, true } } },
-  { "WE Pro 3:1", 250, 200, 96, 76, Automatic, { { "Start", 2, 0, 50.0, 2, 0, false, false, true, true, false }, { "PI 1/2", 4, 0.0, 50.0, 12, 6, false, false, true, true, false }, { "PI 2/2", 2, 0.0, 50.0, 15, 10, false, false, true, true, false }, { "9 Bar", 8, 0.0, 50.0, 20, 3, false, false, true, true, false }, { "Decrease", 6.5, 0.0, 50.0, 15, 15, false, false, true, true, false }, { " Hold ", 6.5, 0.0, 50.0, 30, 30, false, false, true, true, false } } },
+  { "WE Pro 3:1", 250, 200, 96, 76, Automatic, { { "Start", 1.5, 0, 50.0, 2, 0, false, false, true, true, false }, { "PI 1/2", 4, 0.0, 50.0, 12, 6, false, false, true, true, false }, { "PI 2/2", 1.5, 0.0, 50.0, 15, 10, false, false, true, true, false }, { "9 Bar", 8, 0.0, 50.0, 20, 3, false, false, true, true, false }, { "Decrease", 6.5, 0.0, 50.0, 15, 15, false, false, true, true, false }, { " Hold ", 6.5, 0.0, 50.0, 30, 30, false, false, true, true, false } } },
   { "Leva X", 50, 280, 96, 76, Automatic, { { "PI", 3.0, 0.0, 0.0, 10, 1, false, false, true, false, false }, { "Ramp", 9.0, 0.0, 0.0, 2, 1, true, false, true, false, false }, { "Decrease", 4.0, 0.0, 0.0, 40, 40, false, false, true, false, false }, { "Hold", 4.0, 0.0, 0.0, 8, 3, false, false, true, false, false } } },
   { "Turbo", 150, 280, 96, 76, Automatic, { { "PI", 3.0, 0.0, 0.0, 15, 1, false, false, true, false, false }, { "Ramp", 6.0, 0.0, 0.0, 3, 0, false, false, true, false, false }, { "Extract", 6.0, 0.0, 0.0, 42, 0, false, false, true, false, false } } },
   { "Spro Over", 250, 280, 96, 76, Automatic, { { "PI", 3.0, 0.0, 0.0, 15, 1, false, false, true, false, false }, { "Ramp", 6.0, 0.0, 0.0, 3, 0, false, false, true, false, false }, { "Extract", 6.0, 0.0, 0.0, 42, 0, false, false, true, false, false } } },
@@ -1304,11 +1304,12 @@ void CheckAutoFill() {
   if (digitalRead(SWITCHPIN) == HIGH) {
     if (digitalRead(OEMAUTOFILLREADPIN) == LOW) {
       digitalWrite(AUTOFILLSOLENOIDPIN, HIGH);
-      Serial.println("Autofill solenoid open");
-      autofillTimer = millis();
-      if ((autofillTimer + 5000) >= millis()) {  // This is supposed to be a 5 second autofill timer to keep it from bouncing on and off but it isn't quite right
-        autofillSpeed = 2000;                    //DAC value of 2000 runs at about the pump speed for 6 bar
-      }
+      Serial.println("Autofill (steam boiler) solenoid open...");
+      //autofillTimer = millis();
+      //if ((autofillTimer + 5000) >= millis()) {  // This and the line above are supposed to be a 5 second autofill timer to keep it from bouncing on and off but it isn't quite right
+      pumpDACValue = 3000;  //DAC value of 3000 runs at about the pump speed for 6 bar
+      dac.setVoltage(pumpDACValue, false);
+      //}
       if (SelectedScreen == HOME) {
         tft.setTextSize(3);
         tft.setCursor(getCenteredX("Autofill"), 40);
@@ -1316,7 +1317,9 @@ void CheckAutoFill() {
         tft.print("Autofill");
       }
     } else {
-      autofillSpeed = 0;
+      digitalWrite(AUTOFILLSOLENOIDPIN, LOW);
+      pumpDACValue = 0;
+      dac.setVoltage(pumpDACValue, false);
       tft.setTextSize(3);
       tft.setCursor(getCenteredX("           "), 40);
       tft.setTextColor(TEXT_COLOR, BACKGROUND_COLOR);
@@ -1325,7 +1328,6 @@ void CheckAutoFill() {
       }
     }
   }
-  dac.setVoltage(autofillSpeed, false);
 }
 void UpdateScreen() {
   if (SelectedScreen == HOME) {
@@ -1363,9 +1365,12 @@ void UpdateSettings() {
 void MakeCoffee() {
   if (digitalRead(SWITCHPIN) == HIGH) {
     digitalWrite(BREWSOLENOIDPIN, LOW);
-    //Serial.println("Switch is off");
-    pumpDACValue = 0;
+    Serial.println("Switch is off");
     CheckAutoFill();
+    if (digitalRead(OEMAUTOFILLREADPIN) == HIGH) {
+      pumpDACValue = 0;
+      dac.setVoltage(pumpDACValue, false);
+    }
     if (weightStopper = true) {
       weightStopper = false;
       // Serial.println("weightStopper FALSE Line 1262");
@@ -1425,5 +1430,5 @@ void loop(void) {
   UpdateScreen();
   MakeCoffee();
   HandleLunar();
-  Serial.println(potentiometer);
+  Serial.println(pumpDACValue);
 }
