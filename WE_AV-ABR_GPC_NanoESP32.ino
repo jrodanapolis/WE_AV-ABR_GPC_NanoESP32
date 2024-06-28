@@ -10,6 +10,7 @@
 #include <lunarGateway.h>
 #include <vector>
 #include <string>
+#include <I2CScanner.h>
 Preferences Preferences;
 int potentiometer = 0;
 int pumpDACValue = 0;
@@ -37,7 +38,6 @@ float LunarX = 36;
 float dripFactor = 2.0;
 float plotStep = 0.117;
 int autofillTimer = 0;
-int autofillDACValue = 0;
 int counter;
 int sliderStart = 20;
 int sliderEnd = 275;
@@ -148,6 +148,8 @@ bool timerRunning;
 //DAC setup
 Adafruit_MCP4725 dac;
 
+//I2C Scanner
+I2CScanner scanner;
 
 // 3.5" Wired screen and touchpad setup
 Adafruit_HX8357 tft = Adafruit_HX8357(TFT_CS, TFT_DC);
@@ -1240,10 +1242,14 @@ void setup() {
 
   timerRunning = false;
 
-  dac.begin(0x61);
+  dac.begin(0x60);
   Serial.println("DAC started");
   dac.setVoltage(0, true);  // "true" sets EEPROM DAC value to zero so that the pump doesn't run when power cycled
 
+  //initialize I2C scanner
+  scanner.Init();
+
+  //initialize touchscreen
   tft.begin();
   if (!ctp.begin(FT53XX_DEFAULT_ADDR, &Wire)) {  // pass in 'sensitivity' coefficient and I2C bus
     Serial.println("Couldn't start FT5336 touchscreen controller");
@@ -1431,4 +1437,5 @@ void loop(void) {
   MakeCoffee();
   HandleLunar();
   Serial.println(pumpDACValue);
+  scanner.Scan();
 }
