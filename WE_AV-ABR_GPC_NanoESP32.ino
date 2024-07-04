@@ -233,10 +233,10 @@ ProfileType Profiles[NumberOfProfiles] = {
   { "ExDos!", 250, 40, 96, 76, Automatic, { { "PI", 3.0, 0.0, 0.0, 15, 1, false, false, true, false, false }, { "Ramp", 6.0, 0.0, 0.0, 3, 0, false, false, true, false, false }, { "6 Bar", 6.0, 0.0, 0.0, 42, 0, false, false, true, false, false } } },
   { "Flat 6", 50, 120, 96, 76, Automatic, { { "PI", 3.0, 0.0, 0.0, 15, 1, false, false, true, false, false }, { "Ramp", 6.0, 0.0, 0.0, 3, 0, false, false, true, false, false }, { "6 Bar", 6.0, 0.0, 0.0, 42, 0, false, false, true, false, false } } },
   { "Slayer 6", 150, 120, 96, 76, Interactive, { { "  Line  ", 0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "  PI  ", 3.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "  PI  ", 3.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "6 Bar", 6.0, 0.0, 0.0, 0, 0, false, false, false, false, true } } },
-  { "WE Pro 2:1", 250, 120, 96, 76, Automatic, { { "Start", 1.5, 0, 40.0, 2, 0, false, false, true, true, false }, { "PI 1/2", 4, 0.0, 40.0, 12, 6, false, false, true, true, false }, { "PI 2/2", 1.5, 0.0, 40.0, 15, 10, false, false, true, true, false }, { "9 Bar", 8, 0.0, 40.0, 20, 3, false, false, true, true, false }, { "Decrease", 6.5, 0.0, 40.0, 15, 15, false, false, true, true, false }, { " Hold ", 6.5, 0.0, 40.0, 30, 30, false, false, true, true, false } } },
+  { "WE Pro 2:1", 250, 120, 96, 76, Automatic, { { "Start", 1.5, 0, 40.0, 2, 0, false, false, true, true, false }, { "PI 1/2", 4, 0.0, 40.0, 14, 12, false, false, true, true, false }, { "PI 2/2", 1.5, 0.0, 40.0, 14, 12, false, false, true, true, false }, { "9 Bar", 8, 0.0, 40.0, 20, 2, false, false, true, true, false }, { "Decrease", 6.5, 0.0, 40.0, 15, 15, false, false, true, true, false }, { " Hold ", 6.5, 0.0, 40.0, 55, 30, false, false, true, true, false } } },
   { "Flat 9", 50, 200, 96, 76, Automatic, { { "PI", 3.0, 0.0, 0.0, 15, 1, false, false, true, false, false }, { "Ramp", 9.0, 0.0, 0.0, 3, 0, false, false, true, false, false }, { "9 Bar", 9.0, 0.0, 0.0, 42, 0, false, false, true, false, false } } },
   { "Slayer 9", 150, 200, 96, 76, Interactive, { { "  Line  ", 0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "  PI  ", 3.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "  PI  ", 3.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "9 Bar", 9.0, 0.0, 0.0, 0, 0, false, false, false, false, true } } },
-  { "WE Pro 3:1", 250, 200, 96, 76, Automatic, { { "Start", 1.5, 0, 50.0, 2, 0, false, false, true, true, false }, { "PI 1/2", 4, 0.0, 50.0, 12, 6, false, false, true, true, false }, { "PI 2/2", 1.5, 0.0, 50.0, 15, 10, false, false, true, true, false }, { "9 Bar", 8, 0.0, 50.0, 20, 3, false, false, true, true, false }, { "Decrease", 6.5, 0.0, 50.0, 15, 15, false, false, true, true, false }, { " Hold ", 6.5, 0.0, 50.0, 30, 30, false, false, true, true, false } } },
+  { "WE Pro 3:1", 250, 200, 96, 76, Automatic, { { "Start", 1.5, 0, 50.0, 2, 0, false, false, true, true, false }, { "PI 1/2", 4, 0.0, 50.0, 14, 12, false, false, true, true, false }, { "PI 2/2", 1.5, 0.0, 50.0, 14, 12, false, false, true, true, false }, { "9 Bar", 8, 0.0, 50.0, 20, 2, false, false, true, true, false }, { "Decrease", 6.5, 0.0, 50.0, 15, 15, false, false, true, true, false }, { " Hold ", 6.5, 0.0, 50.0, 55, 30, false, false, true, true, false } } },
   { "Leva X", 50, 280, 96, 76, Automatic, { { "PI", 3.0, 0.0, 0.0, 10, 1, false, false, true, false, false }, { "Ramp", 9.0, 0.0, 0.0, 2, 1, true, false, true, false, false }, { "Decrease", 4.0, 0.0, 0.0, 40, 40, false, false, true, false, false }, { "Hold", 4.0, 0.0, 0.0, 8, 3, false, false, true, false, false } } },
   { "Turbo", 150, 280, 96, 76, Automatic, { { "PI", 3.0, 0.0, 0.0, 15, 1, false, false, true, false, false }, { "Ramp", 6.0, 0.0, 0.0, 3, 0, false, false, true, false, false }, { "Extract", 6.0, 0.0, 0.0, 42, 0, false, false, true, false, false } } },
   { "Spro Over", 250, 280, 96, 76, Automatic, { { "PI", 3.0, 0.0, 0.0, 15, 1, false, false, true, false, false }, { "Ramp", 6.0, 0.0, 0.0, 3, 0, false, false, true, false, false }, { "Extract", 6.0, 0.0, 0.0, 42, 0, false, false, true, false, false } } },
@@ -752,8 +752,8 @@ void InitButtons() {
 }
 int UpdateManual() {
   potentiometer = analogRead(POTENTIOMETERPIN);
-  if (potentiometer >= 500) {
-    return (-4.28 * potentiometer) + 5375;
+  if (potentiometer <= 1940) {
+    return (-1.32 * potentiometer) + 2975;
   } else {
     return 0;
   }
@@ -1226,7 +1226,7 @@ void HandleLunar() {
 void setup() {
   pinMode(FLOWMETERPIN, INPUT_PULLDOWN);
   pinMode(SWITCHPIN, INPUT);
-  pinMode(POTENTIOMETERPIN, INPUT);
+  pinMode(POTENTIOMETERPIN, INPUT_PULLDOWN);
   pinMode(PRESSUREPIN, INPUT);
   pinMode(PUMPTACHPIN, INPUT);
   pinMode(AUTOFILLSOLENOIDPIN, OUTPUT);
@@ -1393,7 +1393,9 @@ void MakeCoffee() {
     average_PT = 0;
     presX = 36;
     flowX_FM = 36;
+    flowRate_FM_Display = 0;
     flowX_PT = 36;
+    flowRate_PT = 0;
     LunarX = 36;
   }
   if (digitalRead(SWITCHPIN) == LOW) {
@@ -1436,6 +1438,9 @@ void loop(void) {
   UpdateScreen();
   MakeCoffee();
   HandleLunar();
+  Serial.print("Pot: ");
+  Serial.println(potentiometer);
+  Serial.print("DAC: ");
   Serial.println(pumpDACValue);
-  scanner.Scan();
+  //scanner.Scan(); //I2C address scanner - uncomment if you need to see device I2c addresses
 }
