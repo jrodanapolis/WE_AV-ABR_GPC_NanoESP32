@@ -318,16 +318,16 @@ int getPaddleState() {
   }
   if (Profiles[selectedProfile].mode == Interactive) {
     potentiometer = analogRead(POTENTIOMETERPIN);
-    if (potentiometer >= 1050) {
+    if (potentiometer >= 1500) {
       return 0;
     }
-    if ((potentiometer < 1050) && (potentiometer >= 870)) {
+    if ((potentiometer < 1500) && (potentiometer >= 1000)) {
       return 1;
     }
-    if ((potentiometer < 870) && (potentiometer >= 650)) {
+    if ((potentiometer < 1000) && (potentiometer >= 500)) {
       return 2;
     }
-    if (potentiometer <= 650) {
+    if (potentiometer <= 500) {
       return 3;
     }
   }
