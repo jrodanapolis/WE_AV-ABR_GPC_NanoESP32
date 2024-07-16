@@ -804,9 +804,9 @@ void UpdateDoseSize() {
 }
 
 void InitBrightness() {
-  tft.fillCircle(lastBrightnessX, 220, 15, BACKGROUND_COLOR);
+  tft.fillCircle(lastBrightnessX, 200, 15, BACKGROUND_COLOR);
   tft.drawFastHLine(sliderStart, sliderY, 255, TEXT_COLOR);
-  tft.fillCircle(SelectedBrightness, 220, 15, BUTTON_COLOR);
+  tft.fillCircle(SelectedBrightness, 200, 15, BUTTON_COLOR);
   tft.setTextColor(TEXT_COLOR, BACKGROUND_COLOR);
   tft.setTextSize(2);
   tft.setCursor(20, 205);
