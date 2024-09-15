@@ -234,19 +234,19 @@ ProfileType Profiles[NumberOfProfiles] = {
   { "ExDos!", 250, 40, 96, 76, Automatic, { { "PI", 3.0, 0.0, 0.0, 15, 1, false, false, true, false, false }, { "Ramp", 6.0, 0.0, 0.0, 3, 0, false, false, true, false, false }, { "6 Bar", 6.0, 0.0, 0.0, 42, 0, false, false, true, false, false } } },
   { "Flat 6", 50, 120, 96, 76, Automatic, { { "PI", 3.0, 0.0, 0.0, 15, 1, false, false, true, false, false }, { "Ramp", 6.0, 0.0, 0.0, 3, 0, false, false, true, false, false }, { "6 Bar", 6.0, 0.0, 0.0, 42, 0, false, false, true, false, false } } },
   { "Slayer 6", 150, 120, 96, 76, Interactive, { { "  Line  ", 0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "  PI  ", 3.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "  PI  ", 3.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "6 Bar", 6.0, 0.0, 0.0, 0, 0, false, false, false, false, true } } },
-  { "WE Pro 2:1", 250, 120, 96, 76, Automatic, { { "Start", 1.5, 0, 40.0, 2, 0, false, false, true, true, false }, { "PI 1/2", 4, 0.0, 40.0, 14, 12, false, false, true, true, false }, { "PI 2/2", 1.5, 0.0, 40.0, 14, 12, false, false, true, true, false }, { "9 Bar", 8, 0.0, 40.0, 20, 2, false, false, true, true, false }, { "Decrease", 6.5, 0.0, 40.0, 15, 15, false, false, true, true, false }, { " Hold ", 6.5, 0.0, 40.0, 55, 30, false, false, true, true, false } } },
+  { "WE Pro 2:1", 250, 120, 96, 76, Automatic, { { "Start", 1.5, 0, 40.0, 2, 0, false, false, true, true, false }, { "PI 1/2", 4, 0.0, 40.0, 14, 12, false, false, true, true, false }, { "PI 2/2", 1.5, 0.0, 40.0, 14, 12, false, false, true, true, false }, { "9 Bar", 9, 0.0, 40.0, 20, 2, false, false, true, true, false }, { "Decrease", 7, 0.0, 40.0, 15, 15, false, false, true, true, false }, { " Hold ", 6.5, 0.0, 40.0, 55, 30, false, false, true, true, false } } },
   { "Flat 9", 50, 200, 96, 76, Automatic, { { "PI", 3.0, 0.0, 0.0, 15, 1, false, false, true, false, false }, { "Ramp", 9.0, 0.0, 0.0, 3, 0, false, false, true, false, false }, { "9 Bar", 9.0, 0.0, 0.0, 42, 0, false, false, true, false, false } } },
   { "Slayer 9", 150, 200, 96, 76, Interactive, { { "  Line  ", 0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "  PI  ", 3.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "  PI  ", 3.0, 0.0, 0.0, 0, 0, false, false, false, false, true }, { "9 Bar", 9.0, 0.0, 0.0, 0, 0, false, false, false, false, true } } },
-  { "WE Pro 3:1", 250, 200, 96, 76, Automatic, { { "Start", 1.5, 0, 50.0, 2, 0, false, false, true, true, false }, { "PI 1/2", 4, 0.0, 50.0, 14, 12, false, false, true, true, false }, { "PI 2/2", 1.5, 0.0, 50.0, 14, 12, false, false, true, true, false }, { "9 Bar", 8, 0.0, 50.0, 20, 2, false, false, true, true, false }, { "Decrease", 6.5, 0.0, 50.0, 15, 15, false, false, true, true, false }, { " Hold ", 6.5, 0.0, 50.0, 55, 30, false, false, true, true, false } } },
+  { "WE Pro 3:1", 250, 200, 96, 76, Automatic, { { "Start", 1.5, 0, 50.0, 2, 0, false, false, true, true, false }, { "PI 1/2", 4, 0.0, 50.0, 14, 12, false, false, true, true, false }, { "PI 2/2", 1.5, 0.0, 50.0, 14, 12, false, false, true, true, false }, { "9 Bar", 9, 0.0, 50.0, 20, 2, false, false, true, true, false }, { "Decrease", 7, 0.0, 50.0, 15, 15, false, false, true, true, false }, { " Hold ", 6.5, 0.0, 50.0, 55, 30, false, false, true, true, false } } },
   { "Leva X", 50, 280, 96, 76, Automatic, { { "PI", 3.0, 0.0, 0.0, 10, 1, false, false, true, false, false }, { "Ramp", 9.0, 0.0, 0.0, 2, 1, true, false, true, false, false }, { "Decrease", 4.0, 0.0, 0.0, 40, 40, false, false, true, false, false }, { "Hold", 4.0, 0.0, 0.0, 8, 3, false, false, true, false, false } } },
   { "Turbo", 150, 280, 96, 76, Automatic, { { "PI", 3.0, 0.0, 0.0, 15, 1, false, false, true, false, false }, { "Ramp", 6.0, 0.0, 0.0, 3, 0, false, false, true, false, false }, { "Extract", 6.0, 0.0, 0.0, 42, 0, false, false, true, false, false } } },
-  { "Spro Over", 250, 280, 96, 76, Automatic, { { "PI", 3.0, 0.0, 0.0, 15, 1, false, false, true, false, false }, { "Ramp", 6.0, 0.0, 0.0, 3, 0, false, false, true, false, false }, { "Extract", 6.0, 0.0, 0.0, 42, 0, false, false, true, false, false } } },
+  { "Calibrate", 250, 280, 96, 76, Automatic, { { "Step 1", 0.5, 0.0, 0.0, 10, 3, false, false, true, false, false }, { "Step 2", 1.0, 0.0, 0.0, 6, 3, false, false, true, false, false }, { "Step 3", 1.5, 0.0, 0.0, 6, 3, false, false, true, false, false }, { "Step 4", 2.0, 0.0, 0.0, 6, 3, false, false, true, false, false }, { "Step 5", 2.5, 0.0, 0.0, 6, 3, false, false, true, false, false }, { "Step 6", 3.0, 0.0, 0.0, 6, 3, false, false, true, false, false }, { "Step 7", 3.5, 0.0, 0.0, 6, 3, false, false, true, false, false }, { "Step 8", 4.0, 0.0, 0.0, 6, 3, false, false, true, false, false }, { "Step 9", 4.5, 0.0, 0.0, 6, 3, false, false, true, false, false }, { "Step 10", 5.0, 0.0, 0.0, 6, 3, false, false, true, false, false }, { "Step 11", 5.5, 0.0, 0.0, 6, 3, false, false, true, false, false }, { "Step 12", 6.0, 0.0, 0.0, 6, 3, false, false, true, false, false }, { "Step 13", 6.5, 0.0, 0.0, 6, 3, false, false, true, false, false }, { "Step 14", 7.0, 0.0, 0.0, 6, 3, false, false, true, false, false }, { "Step 15", 7.5, 0.0, 0.0, 6, 3, false, false, true, false, false }, { "Step 16", 8.0, 0.0, 0.0, 6, 3, false, false, true, false, false }, { "Step 17", 8.5, 0.0, 0.0, 6, 3, false, false, true, false, false }, { "Step 18", 9.0, 0.0, 0.0, 6, 3, false, false, true, false, false }, { "Step 19", 9.5, 0.0, 0.0, 6, 3, false, false, true, false, false }, { "Step 20", 10.0, 0.0, 0.0, 6, 3, false, false, true, false, false } } },
 };
 
 // converting target pressure into a DAC value for the profiles... the "pressures" current set in the profiles above won't go off of read pressure, but rather target pressure
 // this would be a great place to work in a pressure PID or feedback loop for true pressure profiling instead of targeted pressure profiling
 int pressureToDACConvertion(float pressure) {
-  float dac = ((294.55 * pressure) + 338.18);
+  float dac = ((274 * pressure) + 263);
   if (dac < 0) {
     dac = 0;
   }
@@ -758,7 +758,7 @@ void InitButtons() {
 int UpdateManual() {
   potentiometer = analogRead(POTENTIOMETERPIN);
   if (potentiometer <= 1940) {
-    return (-1.32 * potentiometer) + 2975;
+    return (-1.33 * potentiometer) + 3000;
   } else {
     return 0;
   }
@@ -1265,7 +1265,7 @@ void UpdateLunarData() {
     if (peripheral && peripheral.hasLocalName()) {
       if (peripheral.localName().indexOf("LUNAR-") == 0) {
         if (lunar.connect(&peripheral)) {
-          Serial.println("Found LUNAR device");
+          Serial.println("Connected to Lunar!");
           found_lunar = true;
           scale_read_last_time = 0;  //I don't think this is right - doesn't this need to be = millis() when it's read? needs fixed
           BLE.stopScan();
@@ -1287,7 +1287,7 @@ void UpdateLunarData() {
       //Serial.println("BLE Active");
       if (found_lunar) {
         if (lunar.connected()) {
-          Serial.println("Lunar Connected!");
+          //Serial.println("Lunar Connected!");
           read_scale();
           if (!lunar_session_init) {
             lunar.sendHeartBeat();
@@ -1460,7 +1460,7 @@ void UpdateLunarData() {
   void MakeCoffee() {
     if (digitalRead(SWITCHPIN) == HIGH) {
       digitalWrite(BREWSOLENOIDPIN, LOW);
-      Serial.println("Switch is off");
+      //Serial.println("Switch is off");
       CheckAutoFill();
       if (digitalRead(OEMAUTOFILLREADPIN) == HIGH) {
         pumpDACValue = 0;
@@ -1488,7 +1488,7 @@ void UpdateLunarData() {
       LunarX = 36;
     }
     if (digitalRead(SWITCHPIN) == LOW) {
-      Serial.println("Switch On");
+      //Serial.println("Switch On");
       if (weightStopper == false) {
         digitalWrite(BREWSOLENOIDPIN, HIGH);
       }
@@ -1527,9 +1527,20 @@ void UpdateLunarData() {
     UpdateScreen();
     MakeCoffee();
     HandleLunar();
-    Serial.print("Pot: ");
-    Serial.println(potentiometer);
+    if (pumpDACValue >> 0) {
+    Serial.print("Time: ");
+    Serial.println(shotTimer);
     Serial.print("DAC: ");
     Serial.println(pumpDACValue);
+    Serial.print("Pressure: ");
+    Serial.println(readPressure);
+    Serial.print("Flow Rate: ");
+    Serial.println(flowRate_FM_Display);
+    Serial.print("Tach Flow: ");
+    Serial.println(flowRate_PT);
+    Serial.print("Weight: ");
+    Serial.println(lunar.weight);
+    Serial.println(" ");
+    }
     //scanner.Scan(); //I2C address scanner - uncomment if you need to see device I2c addresses
   }
