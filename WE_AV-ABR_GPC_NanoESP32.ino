@@ -161,7 +161,7 @@ const uint16_t TIME_COLOR = tft.color565(238, 99, 82);
 const uint16_t PRESSURE_COLOR = tft.color565(219, 208, 83);
 const uint16_t FLOW_COLOR = tft.color565(99, 105, 209);
 const uint16_t RPM_COLOR = tft.color565(230, 101, 45);
-const uint16_t PUMP_COLOR = tft.color565(79, 201, 120);
+const uint16_t WEIGHT_COLOR = tft.color565(79, 201, 120);
 const uint16_t PHASE_COLOR = tft.color565(244, 187, 255);
 const uint16_t BUTTON_COLOR = tft.color565(27, 45, 42);
 const uint16_t BUTTON_OUTLINE_COLOR = tft.color565(247, 247, 255);
@@ -520,7 +520,7 @@ uint16_t cacluateRainbow(int progress) {
 
 void DrawBootScreen() {
   ClearScreen();
-  tft.setTextColor(PUMP_COLOR, BACKGROUND_COLOR);
+  tft.setTextColor(WEIGHT_COLOR, BACKGROUND_COLOR);
   tft.setTextSize(3);
   tft.setCursor(getCenteredX("Witt's End Coffee Co."), 100);
   tft.print("Witt's End Coffee Co.");
@@ -642,7 +642,7 @@ void DrawPlot() {
   tft.setCursor(8, 297);
   tft.print("0");
 
-  tft.setTextColor(PUMP_COLOR, BACKGROUND_COLOR);  // Y axis unit indicator dashes and scale for weight side
+  tft.setTextColor(WEIGHT_COLOR, BACKGROUND_COLOR);  // Y axis unit indicator dashes and scale for weight side
   tft.setTextSize(1);
   tft.drawLine(450, 150, 460, 150, TEXT_COLOR);
   tft.setCursor(465, 155);
@@ -705,7 +705,7 @@ void DrawPlot() {
   tft.print("Pump: ");
   tft.setCursor(310, 120);
   tft.print("mL/s");
-  tft.setTextColor(PUMP_COLOR, BACKGROUND_COLOR);
+  tft.setTextColor(WEIGHT_COLOR, BACKGROUND_COLOR);
   tft.setCursor(395, 75);
   tft.print("Weight: ");
   tft.setCursor(405, 120);
@@ -886,7 +886,7 @@ void UpdateFillLevel() {
 }
 
 void InitLunarData() {
-  tft.drawRoundRect(260, 242, 200, 67, 5, PUMP_COLOR);
+  tft.drawRoundRect(260, 242, 200, 67, 5, WEIGHT_COLOR);
   tft.setTextSize(2);
   tft.setCursor(325, 252);
   tft.print("Lunar");
@@ -971,15 +971,15 @@ void UpdatePlot() {
     lastFlowPlot_FM = flowPlot_FM;
     flowX_FM = flowX_FM + plotStep;
     //Plot Lunar Weight
-    tft.drawCircle(LunarX, LunarPlot, 1, PUMP_COLOR);
-    tft.drawLine(LunarX - plotStep, lastLunarPlot, LunarX, LunarPlot, PUMP_COLOR);
+    tft.drawCircle(LunarX, LunarPlot, 1, WEIGHT_COLOR);
+    tft.drawLine(LunarX - plotStep, lastLunarPlot, LunarX, LunarPlot, WEIGHT_COLOR);
     lastLunarPlot = LunarPlot;
     LunarX = LunarX + plotStep;
-    //Plot Pump Tachometer - not being plotted right now, can be added back in later if we want to track pump tach/flow
-    //tft.drawCircle(flowX_PT, flowPlot_PT, 1, PUMP_COLOR);
-    //tft.drawLine(flowX_PT - plotStep, lastFlowPlot_PT, flowX_PT, flowPlot_PT, PUMP_COLOR);
-    //lastFlowPlot_PT = flowPlot_PT;
-    //flowX_PT = flowX_PT + plotStep;
+    //Plot Pump Tachometer
+    tft.drawCircle(flowX_PT, flowPlot_PT, 1, RPM_COLOR);
+    tft.drawLine(flowX_PT - plotStep, lastFlowPlot_PT, flowX_PT, flowPlot_PT, RPM_COLOR);
+    lastFlowPlot_PT = flowPlot_PT;
+    flowX_PT = flowX_PT + plotStep;
     // Serial.println(presPlot);
     // Serial.print(",");
     // Serial.print(flowPlot_FM);
@@ -1157,7 +1157,7 @@ void UpdateLunar() {
   LunarPlot = constrain(LunarPlot, 152, 298);
   tft.setTextSize(3);
   tft.setCursor(405, 95);
-  tft.setTextColor(PUMP_COLOR, BACKGROUND_COLOR);
+  tft.setTextColor(WEIGHT_COLOR, BACKGROUND_COLOR);
   tft.print(abs(readLunarWeight), 1);
   if (readLunarWeight <= 9.9) {
     tft.print(" ");
@@ -1247,7 +1247,7 @@ void UpdatePumpTach() {
   duty_PT = average_PT / 50;
   flowPlot_PT = map(flowRate_PT * 100, 0.0 * 100, 20.0 * 100, 298, 152);
   flowPlot_PT = constrain(flowPlot_PT, 152, 298);
-  flowRate_PT = RPM_PT / 60.0 * 0.3;  //From pump datasheet, where 1 rotation = 0.3 mL
+  flowRate_PT = RPM_PT / 60.0 * 0.3;  //From pump datasheet, where 1 rotation = 0.3 mL. flowRate_PT is given in mL/s.
   }
   tft.setTextSize(3);
   tft.setCursor(305, 95);
