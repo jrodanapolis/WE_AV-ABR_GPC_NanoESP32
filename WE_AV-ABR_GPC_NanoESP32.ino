@@ -28,6 +28,8 @@ float flowX_FM = 36;
 float flowPlot_FM = 0.0;
 float lastFlowPlot_FM = 298;
 float flowRate_PT;
+float flowRate_PT_Ratio;
+float flowRate_PT_Display;
 float flowX_PT = 36;
 float flowPlot_PT = 0.0;
 float lastFlowPlot_PT = 298;
@@ -244,7 +246,7 @@ ProfileType Profiles[NumberOfProfiles] = {
 };
 
 // converting target pressure into a DAC value for the profiles... the "pressures" current set in the profiles above won't go off of read pressure, but rather target pressure
-// this would be a great place to work in a pressure PID or feedback loop for true pressure profiling instead of targeted pressure profiling
+// this would be a place to work in a pressure PID or feedback loop for true pressure profiling instead of targeted pressure profiling
 int pressureToDACConvertion(float pressure) {
   float dac = ((274 * pressure) + 263);
   if (dac < 0) {
@@ -706,6 +708,7 @@ void DrawPlot() {
   tft.setCursor(310, 120);
   tft.print("mL/s");
   tft.setTextColor(WEIGHT_COLOR, BACKGROUND_COLOR);
+  tft.drawCircle(385, 81, 4, WEIGHT_COLOR);
   tft.setCursor(395, 75);
   tft.print("Weight: ");
   tft.setCursor(405, 120);
@@ -792,12 +795,12 @@ void UpdateStartupTimer() {
   seconds %= 60;
   minutes %= 60;
   hours %= 24;
-  tft.print(String("Up Time: ") + String(" ") + String(hours) + String(":") + String(minutes) + String(":") + String(seconds) + String(" "));
+  tft.print(String("Up Time: ") + String(days) + String(":") + String(hours) + String(":") + String(minutes) + String(":") + String(seconds) + String(" "));
 }
 void UpdateShotCounter() {
   tft.setTextColor(TEXT_COLOR, BACKGROUND_COLOR);
   tft.setTextSize(2);
-  tft.setCursor(20, 100);
+  tft.setCursor(20, 110);
   tft.print(String("Shot Count: ") + String(ShotCounter));
 }
 
@@ -953,11 +956,11 @@ void Pulse_Event_PT()  // Pump Tachometer interrupt function
 void UpdatePlot() {
   // NOT being connected to the Lunar slowed the Uno R4 down, so I broke this out... but it doesn't seem to make a difference with Nano ESP32 but leaving it in case.
   // Future upgrade may be to tell the Arduino to stop searching for the Lunar if it isn't connected and a shot starts?
-  // In addition to that, I think the plot should be changed to plot every so often, rather than EVERY time through the loop?
+  // In addition to that, I think the plot should be changed to plot every so often, rather than EVERY time through the loop with a "plot step"
   if (lunar.connected()) {
-    plotStep = 0.117;
+    plotStep = 0.118;
   } else {
-    plotStep = 0.117;
+    plotStep = 0.118;
   }
   if (readPressure > 0) {
     //Plot Pressure
@@ -1162,6 +1165,11 @@ void UpdateLunar() {
   if (readLunarWeight <= 9.9) {
     tft.print(" ");
   }
+      if (lunar.connected()) {
+      tft.fillCircle(385, 81, 3, WEIGHT_COLOR);
+  } else {
+      tft.fillCircle(385, 81, 3, BACKGROUND_COLOR);
+    }
 }
 
 void UpdateFlowMeter() {
@@ -1243,16 +1251,18 @@ void UpdatePumpTach() {
     }
     average_PT = total_PT / numReadings_PT;
     PT_kilo = average_PT / 1000;
-    flowRate_PT = average_PT / 60.0 * 0.3;
+    //flowRate_PT = average_PT / 60.0 * 0.3;     Do we need this line? appears to be duplicate
   duty_PT = average_PT / 50;
-  flowPlot_PT = map(flowRate_PT * 100, 0.0 * 100, 20.0 * 100, 298, 152);
-  flowPlot_PT = constrain(flowPlot_PT, 152, 298);
   flowRate_PT = RPM_PT / 60.0 * 0.3;  //From pump datasheet, where 1 rotation = 0.3 mL. flowRate_PT is given in mL/s.
+  flowRate_PT_Ratio = (-0.015*readPressure) + 0.3;
+  flowRate_PT_Display = flowRate_PT * flowRate_PT_Ratio;
+  flowPlot_PT = map(flowRate_PT_Display * 100, 0.0 * 100, 10.0 * 100, 298, 152);
+  flowPlot_PT = constrain(flowPlot_PT, 152, 298);
   }
   tft.setTextSize(3);
   tft.setCursor(305, 95);
   tft.setTextColor(RPM_COLOR, BACKGROUND_COLOR);
-  tft.print(flowRate_PT, 1);
+  tft.print(flowRate_PT_Display, 1);
   if (flowRate_PT <= 9.9) {
     tft.print(" ");
   }
@@ -1488,14 +1498,7 @@ void MakeCoffee() {
         WriteShotCounter();
       }
     }
-    average_FM = 0;
-    average_PT = 0;
-    presX = 36;
-    flowX_FM = 36;
-    flowRate_FM_Display = 0;
-    flowX_PT = 36;
-    flowRate_PT = 0;
-    LunarX = 36;
+    // Setting display values to zero removed from here
   }
   if (digitalRead(SWITCHPIN) == LOW) {
     //Serial.println("Switch On");
@@ -1551,6 +1554,16 @@ void loop(void) {
     Serial.print("Weight: ");
     Serial.println(lunar.weight);
     Serial.println(" ");
+  }
+  else {
+    average_FM = 0;
+    average_PT = 0;
+    presX = 36;
+    flowX_FM = 36;
+    flowRate_FM_Display = 0;
+    flowX_PT = 36;
+    flowRate_PT_Display = 0;
+    LunarX = 36;
   }
   //scanner.Scan(); //I2C address scanner - uncomment if you need to see device I2c addresses
 }
