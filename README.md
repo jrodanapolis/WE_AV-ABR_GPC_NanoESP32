@@ -8,5 +8,3 @@ A 2021 Acaia Lunar will automatically connect to the Arduino using this software
 Please reach out with any questions or to get involved or if you're working on a similar mod - we'd like as many contributors as possible, and I love hearing about other projects! 
 
 Pull requests and contributions welcome and encouraged :)
-
-Jared.Bandel@gmail.com
